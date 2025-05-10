@@ -1,0 +1,28 @@
+{
+  "root": true,
+  "extends": ["next/core-web-vitals", "eslint:recommended"],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": 2022,
+    "sourceType": "module",
+    "ecmaFeatures": {
+      "jsx": true
+    }
+  },
+  "env": {
+    "browser": true,
+    "node": true,
+    "es6": true
+  },
+  "rules": {
+    "no-var": "error",
+    "prefer-const": "error",
+    "no-console": "off",
+    "semi": ["error", "never"],
+    "quotes": ["error", "single", { "avoidEscape": true }],
+    "brace-style": ["error", "1tbs"],
+    "indent": "off",
+    "max-len": ["warn", { "code": 100, "ignoreUrls": true }]
+  },
+  "ignorePatterns": [".next/**", "node_modules/**", "app/components/ui/**"]
+}
