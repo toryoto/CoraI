@@ -7,7 +7,7 @@ import { TooltipIconButton } from '@/components/assistant-ui/tooltip-icon-button
 
 export const ThreadList: FC = () => {
   return (
-    <ThreadListPrimitive.Root className="flex flex-col items-stretch gap-1.5">
+    <ThreadListPrimitive.Root className="flex flex-col items-stretch gap-1.5 h-full overflow-y-auto p-4 border-r">
       <ThreadListNew />
       <ThreadListItems />
     </ThreadListPrimitive.Root>

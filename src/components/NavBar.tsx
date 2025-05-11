@@ -3,8 +3,8 @@ import { UserButton, SignedIn, SignedOut } from '@clerk/nextjs'
 
 export default function NavBar() {
   return (
-    <nav className="bg-white p-4 shadow">
-      <div className="container mx-auto flex justify-between items-center">
+    <nav className="bg-white h-16 shadow z-10">
+      <div className="container mx-auto h-full flex justify-between items-center px-4">
         <Link href="/" className="text-xl font-bold">
           CoraI
         </Link>
