@@ -1,26 +1,19 @@
-import {
-  ActionBarPrimitive,
-  BranchPickerPrimitive,
-  ComposerPrimitive,
-  MessagePrimitive,
-  ThreadPrimitive,
-} from '@assistant-ui/react'
+import { ActionBarPrimitive, BranchPickerPrimitive, ComposerPrimitive, MessagePrimitive, ThreadPrimitive } from '@assistant-ui/react'
 import type { FC } from 'react'
-import {
-  ArrowDownIcon,
-  CheckIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  CopyIcon,
-  PencilIcon,
-  RefreshCwIcon,
-  SendHorizontalIcon,
-} from 'lucide-react'
+import { ArrowDownIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon, CopyIcon, PencilIcon, RefreshCwIcon, SendHorizontalIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 import { Button } from '@/components/ui/button'
 import { MarkdownText } from '@/components/assistant-ui/markdown-text'
 import { TooltipIconButton } from '@/components/assistant-ui/tooltip-icon-button'
+
+import {
+  ComposerAttachments,
+  ComposerAddAttachment,
+} from '@/components/assistant-ui/attachment'
+
+import { UserMessageAttachments } from '@/components/assistant-ui/attachment'
+
 
 export const Thread: FC = () => {
   return (
@@ -57,11 +50,7 @@ export const Thread: FC = () => {
 const ThreadScrollToBottom: FC = () => {
   return (
     <ThreadPrimitive.ScrollToBottom asChild>
-      <TooltipIconButton
-        tooltip="Scroll to bottom"
-        variant="outline"
-        className="absolute -top-8 rounded-full disabled:invisible"
-      >
+      <TooltipIconButton tooltip="Scroll to bottom" variant="outline" className="absolute -top-8 rounded-full disabled:invisible">
         <ArrowDownIcon />
       </TooltipIconButton>
     </ThreadPrimitive.ScrollToBottom>
@@ -84,25 +73,11 @@ const ThreadWelcome: FC = () => {
 const ThreadWelcomeSuggestions: FC = () => {
   return (
     <div className="mt-3 flex w-full items-stretch justify-center gap-4">
-      <ThreadPrimitive.Suggestion
-        className="hover:bg-muted/80 flex max-w-sm grow basis-0 flex-col items-center justify-center rounded-lg border p-3 transition-colors ease-in"
-        prompt="What is the weather in Tokyo?"
-        method="replace"
-        autoSend
-      >
-        <span className="line-clamp-2 text-ellipsis text-sm font-semibold">
-          What is the weather in Tokyo?
-        </span>
+      <ThreadPrimitive.Suggestion className="hover:bg-muted/80 flex max-w-sm grow basis-0 flex-col items-center justify-center rounded-lg border p-3 transition-colors ease-in" prompt="What is the weather in Tokyo?" method="replace" autoSend>
+        <span className="line-clamp-2 text-ellipsis text-sm font-semibold">What is the weather in Tokyo?</span>
       </ThreadPrimitive.Suggestion>
-      <ThreadPrimitive.Suggestion
-        className="hover:bg-muted/80 flex max-w-sm grow basis-0 flex-col items-center justify-center rounded-lg border p-3 transition-colors ease-in"
-        prompt="What is assistant-ui?"
-        method="replace"
-        autoSend
-      >
-        <span className="line-clamp-2 text-ellipsis text-sm font-semibold">
-          What is assistant-ui?
-        </span>
+      <ThreadPrimitive.Suggestion className="hover:bg-muted/80 flex max-w-sm grow basis-0 flex-col items-center justify-center rounded-lg border p-3 transition-colors ease-in" prompt="What is assistant-ui?" method="replace" autoSend>
+        <span className="line-clamp-2 text-ellipsis text-sm font-semibold">What is assistant-ui?</span>
       </ThreadPrimitive.Suggestion>
     </div>
   )
@@ -111,12 +86,9 @@ const ThreadWelcomeSuggestions: FC = () => {
 const Composer: FC = () => {
   return (
     <ComposerPrimitive.Root className="focus-within:border-ring/20 flex w-full flex-wrap items-end rounded-lg border bg-inherit px-2.5 shadow-sm transition-colors ease-in">
-      <ComposerPrimitive.Input
-        rows={1}
-        autoFocus
-        placeholder="Write a message..."
-        className="placeholder:text-muted-foreground max-h-40 flex-grow resize-none border-none bg-transparent px-2 py-4 text-sm outline-none focus:ring-0 disabled:cursor-not-allowed"
-      />
+      <ComposerAttachments />
+      <ComposerAddAttachment />
+      <ComposerPrimitive.Input rows={1} autoFocus placeholder="Write a message..." className="placeholder:text-muted-foreground max-h-40 flex-grow resize-none border-none bg-transparent px-2 py-4 text-sm outline-none focus:ring-0 disabled:cursor-not-allowed" />
       <ComposerAction />
     </ComposerPrimitive.Root>
   )
@@ -127,22 +99,14 @@ const ComposerAction: FC = () => {
     <>
       <ThreadPrimitive.If running={false}>
         <ComposerPrimitive.Send asChild>
-          <TooltipIconButton
-            tooltip="Send"
-            variant="default"
-            className="my-2.5 size-8 p-2 transition-opacity ease-in"
-          >
+          <TooltipIconButton tooltip="Send" variant="default" className="my-2.5 size-8 p-2 transition-opacity ease-in">
             <SendHorizontalIcon />
           </TooltipIconButton>
         </ComposerPrimitive.Send>
       </ThreadPrimitive.If>
       <ThreadPrimitive.If running>
         <ComposerPrimitive.Cancel asChild>
-          <TooltipIconButton
-            tooltip="Cancel"
-            variant="default"
-            className="my-2.5 size-8 p-2 transition-opacity ease-in"
-          >
+          <TooltipIconButton tooltip="Cancel" variant="default" className="my-2.5 size-8 p-2 transition-opacity ease-in">
             <CircleStopIcon />
           </TooltipIconButton>
         </ComposerPrimitive.Cancel>
@@ -155,6 +119,7 @@ const UserMessage: FC = () => {
   return (
     <MessagePrimitive.Root className="grid auto-rows-auto grid-cols-[minmax(72px,1fr)_auto] gap-y-2 [&:where(>*)]:col-start-2 w-full max-w-[var(--thread-max-width)] py-4">
       <UserActionBar />
+      <UserMessageAttachments />
 
       <div className="bg-muted text-foreground max-w-[calc(var(--thread-max-width)*0.8)] break-words rounded-3xl px-5 py-2.5 col-start-2 row-start-2">
         <MessagePrimitive.Content />
@@ -167,11 +132,7 @@ const UserMessage: FC = () => {
 
 const UserActionBar: FC = () => {
   return (
-    <ActionBarPrimitive.Root
-      hideWhenRunning
-      autohide="not-last"
-      className="flex flex-col items-end col-start-1 row-start-2 mr-3 mt-2.5"
-    >
+    <ActionBarPrimitive.Root hideWhenRunning autohide="not-last" className="flex flex-col items-end col-start-1 row-start-2 mr-3 mt-2.5">
       <ActionBarPrimitive.Edit asChild>
         <TooltipIconButton tooltip="Edit">
           <PencilIcon />
@@ -241,11 +202,7 @@ const AssistantActionBar: FC = () => {
 
 const BranchPicker: FC<BranchPickerPrimitive.Root.Props> = ({ className, ...rest }) => {
   return (
-    <BranchPickerPrimitive.Root
-      hideWhenSingleBranch
-      className={cn('text-muted-foreground inline-flex items-center text-xs', className)}
-      {...rest}
-    >
+    <BranchPickerPrimitive.Root hideWhenSingleBranch className={cn('text-muted-foreground inline-flex items-center text-xs', className)} {...rest}>
       <BranchPickerPrimitive.Previous asChild>
         <TooltipIconButton tooltip="Previous">
           <ChevronLeftIcon />
@@ -265,13 +222,7 @@ const BranchPicker: FC<BranchPickerPrimitive.Root.Props> = ({ className, ...rest
 
 const CircleStopIcon = () => {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 16 16"
-      fill="currentColor"
-      width="16"
-      height="16"
-    >
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
       <rect width="10" height="10" x="3" y="3" rx="2" />
     </svg>
   )
