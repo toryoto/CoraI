@@ -12,8 +12,6 @@ export async function initializeChat() {
   const user = await prisma.user.findUnique({
     where: { clerkId: userId }
   })
-
-  console.log(1111, user)
   
   if (!user) {
     throw new Error('ユーザーが見つかりません')
@@ -38,7 +36,22 @@ export async function initializeChat() {
   return { threadId: thread.id, conversationId: conversation.id }
 }
 
-export async function saveMessage(conversationId: string, role: 'user' | 'assistant', content: string) {
+export async function saveMessage(conversationId: string, role: 'user' | 'assistant', content: any) {
+  let contentString: string
+  
+  if (Array.isArray(content)) {
+    contentString = content
+      .filter(item => item.type === 'text')
+      .map(item => item.text)
+      .join('')
+  } else if (typeof content === 'object' && content !== null) {
+    // オブジェクトの場合はJSONに変換
+    contentString = JSON.stringify(content)
+  } else {
+    // 既に文字列の場合はそのまま使用
+    contentString = String(content)
+  }
+  
   // 現在の会話の最新シーケンス番号を取得
   const lastMessage = await prisma.message.findFirst({
     where: { conversationId },
@@ -52,7 +65,7 @@ export async function saveMessage(conversationId: string, role: 'user' | 'assist
     data: {
       conversationId,
       role,
-      content,
+      content: contentString,
       sequence
     }
   })
@@ -65,8 +78,8 @@ export async function saveMessage(conversationId: string, role: 'user' | 'assist
     })
     
     if (conversation?.isDefault) {
-      // 最初のメッセージの内容からタイトルを生成（最初の数文字など）
-      const title = content.length > 30 ? `${content.substring(0, 30)}...` : content
+      // 最初のメッセージの内容からタイトルを生成
+      const title = contentString.length > 30 ? `${contentString.substring(0, 30)}...` : contentString
       
       await prisma.thread.update({
         where: { id: conversation.threadId },
