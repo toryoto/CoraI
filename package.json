@@ -16,6 +16,8 @@
     "@clerk/clerk-sdk-node": "^4.13.23",
     "@clerk/nextjs": "^6.19.2",
     "@prisma/client": "^6.7.0",
+    "@radix-ui/react-avatar": "^1.1.9",
+    "@radix-ui/react-dialog": "^1.1.13",
     "@radix-ui/react-slot": "^1.2.2",
     "@radix-ui/react-tooltip": "^1.2.6",
     "@supabase/supabase-js": "^2.49.4",
@@ -29,7 +31,8 @@
     "remark-gfm": "^4.0.1",
     "svix": "^1.65.0",
     "tailwind-merge": "^3.2.0",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "zustand": "^5.0.4"
   },
   "devDependencies": {
     "@types/node": "^20",

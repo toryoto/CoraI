@@ -14,16 +14,10 @@ export default function Home() {
         <p className="text-xl mb-8">始めるには、サインインまたはサインアップしてください。</p>
 
         <div className="space-x-4">
-          <Link
-            href="/sign-in"
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg text-lg hover:bg-blue-700"
-          >
+          <Link href="/sign-in" className="bg-blue-600 text-white px-6 py-3 rounded-lg text-lg hover:bg-blue-700">
             Sign In
           </Link>
-          <Link
-            href="/sign-up"
-            className="border border-blue-600 text-blue-600 px-6 py-3 rounded-lg text-lg hover:bg-blue-50"
-          >
+          <Link href="/sign-up" className="border border-blue-600 text-blue-600 px-6 py-3 rounded-lg text-lg hover:bg-blue-50">
             Sing Up
           </Link>
         </div>

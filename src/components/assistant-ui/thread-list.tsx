@@ -7,7 +7,7 @@ import { TooltipIconButton } from '@/components/assistant-ui/tooltip-icon-button
 
 export const ThreadList: FC = () => {
   return (
-    <ThreadListPrimitive.Root className="flex flex-col items-stretch gap-1.5">
+    <ThreadListPrimitive.Root className="flex flex-col items-stretch gap-1.5 h-full overflow-y-auto p-4 border-r">
       <ThreadListNew />
       <ThreadListItems />
     </ThreadListPrimitive.Root>
@@ -17,10 +17,7 @@ export const ThreadList: FC = () => {
 const ThreadListNew: FC = () => {
   return (
     <ThreadListPrimitive.New asChild>
-      <Button
-        className="data-[active]:bg-muted hover:bg-muted flex items-center justify-start gap-1 rounded-lg px-2.5 py-2 text-start"
-        variant="ghost"
-      >
+      <Button className="data-[active]:bg-muted hover:bg-muted flex items-center justify-start gap-1 rounded-lg px-2.5 py-2 text-start" variant="ghost">
         <PlusIcon />
         New Thread
       </Button>
@@ -54,11 +51,7 @@ const ThreadListItemTitle: FC = () => {
 const ThreadListItemArchive: FC = () => {
   return (
     <ThreadListItemPrimitive.Archive asChild>
-      <TooltipIconButton
-        className="hover:text-primary text-foreground ml-auto mr-3 size-4 p-0"
-        variant="ghost"
-        tooltip="Archive thread"
-      >
+      <TooltipIconButton className="hover:text-primary text-foreground ml-auto mr-3 size-4 p-0" variant="ghost" tooltip="Archive thread">
         <ArchiveIcon />
       </TooltipIconButton>
     </ThreadListItemPrimitive.Archive>

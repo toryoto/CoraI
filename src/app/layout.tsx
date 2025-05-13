@@ -16,11 +16,11 @@ export const metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider>
-      <html lang="jp">
-        <body className={inter.className}>
+      <html lang="jp" className="overflow-hidden">
+        <body className={`${inter.className} overflow-hidden`}>
           <TooltipProvider>
             <NavBar />
-            <main className="container mx-auto py-4 px-2">{children}</main>
+            <main className="h-[calc(100vh-64px)]">{children}</main>
           </TooltipProvider>
         </body>
       </html>
