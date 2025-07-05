@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 import React from "react"
 import { Sidebar } from "@/components/ui/sidebar"
 import { ChatInterface } from "@/components/chat/chat-interface"
-import { useChatManager } from "@/hooks/useChatManager"
+import { useChatDB } from "@/hooks/useChatDB"
 import { useAIChat } from "@/hooks/useAIChat"
 
 
@@ -21,18 +21,10 @@ export default function ChatPage() {
     addMessage,
     updateMessage,
     removeMessage,
-    updateChatPreview,
     setSidebarCollapsed,
     getCurrentMessages,
     generateId
-  } = useChatManager()
-
-  // Create initial chat on first load
-  React.useEffect(() => {
-    if (chats.length === 0) {
-      createNewChat()
-    }
-  }, [])
+  } = useChatDB()
 
 
 
@@ -42,13 +34,11 @@ export default function ChatPage() {
     stopGeneration,
     handleBranch
   } = useAIChat({
-    onMessageAdd: (message) => {
+    onMessageAdd: async (message) => {
       if (activeChat) {
-        addMessage(activeChat, message)
-        if (message.role === 'user') {
-          updateChatPreview(activeChat, message.content)
-        }
+        return await addMessage(activeChat, message)
       }
+      return null
     },
     onMessageUpdate: (messageId, updates) => {
       if (activeChat) {
@@ -64,8 +54,16 @@ export default function ChatPage() {
     generateId
   })
 
-  const handleSendMessage = (content: string) => {
-    if (!activeChat) return
+  const handleSendMessage = async (content: string) => {
+    if (!activeChat) {
+      // アクティブなチャットがない場合は新しいチャットを作成
+      const newChatId = await createNewChat()
+      if (newChatId) {
+        // 新しいチャットが作成されたら、そのチャットでメッセージを送信
+        sendMessage(content)
+      }
+      return
+    }
     sendMessage(content)
   }
 

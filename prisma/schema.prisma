@@ -1,0 +1,61 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ユーザー認証は後で実装するため、今はシンプルに
+model Chat {
+  id        String   @id @default(cuid())
+  title     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  branches  Branch[]
+}
+
+model Branch {
+  id             String   @id @default(cuid())
+  chatId         String
+  name           String?
+  parentBranchId String?
+  forkMessageId  String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  chat          Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  parentBranch  Branch?   @relation("BranchToParent", fields: [parentBranchId], references: [id])
+  childBranches Branch[]  @relation("BranchToParent")
+  messages      Message[]
+  
+  @@index([chatId])
+  @@index([parentBranchId])
+}
+
+model Message {
+  id          String   @id @default(cuid())
+  branchId    String
+  content     String   @db.Text
+  contentType String   @default("text")
+  role        String   // "user" or "assistant"
+  createdAt   DateTime @default(now())
+  tokenCount  Int?
+  modelUsed   String?
+  isDeleted   Boolean  @default(false)
+  isTyping    Boolean  @default(false)
+  
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  
+  @@index([branchId])
+  @@index([createdAt])
+}

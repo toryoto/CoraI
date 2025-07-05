@@ -3,7 +3,7 @@ import { ChatAPI, type ChatMessage } from '@/lib/api'
 import { type Message } from '@/components/chat/message'
 
 export interface UseAIChatOptions {
-  onMessageAdd: (message: Message) => void
+  onMessageAdd: (message: Message) => Promise<string | null>
   onMessageUpdate: (messageId: string, updates: Partial<Message>) => void
   onMessageRemove: (messageId: string) => void
   getCurrentMessages: () => Message[]
@@ -29,22 +29,25 @@ export function useAIChat({
     }
     
     // Add user message
-    onMessageAdd(userMessage)
+    await onMessageAdd(userMessage)
     
     // Start generating AI response
     setIsGenerating(true)
     
     // Create temporary typing message
-    const typingMessageId = generateId()
     const typingMessage: Message = {
-      id: typingMessageId,
+      id: generateId(),
       content: "",
       role: "assistant",
       timestamp: new Date(),
       isTyping: true
     }
     
-    onMessageAdd(typingMessage)
+    const typingMessageId = await onMessageAdd(typingMessage)
+    if (!typingMessageId) {
+      setIsGenerating(false)
+      return
+    }
     
     try {
       // Create abort controller for this request

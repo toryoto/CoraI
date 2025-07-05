@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 
 export interface ChatInterfaceProps {
   messages: Message[]
-  onSendMessage: (content: string) => void
+  onSendMessage: (content: string) => void | Promise<void>
   onStopGeneration?: () => void
   isGenerating?: boolean
   placeholder?: string
@@ -38,9 +38,9 @@ export function ChatInterface({
     scrollToBottom()
   }, [messages])
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (input.trim() && !disabled && !isGenerating) {
-      onSendMessage(input.trim())
+      await onSendMessage(input.trim())
       setInput("")
       // Reset textarea height
       if (textareaRef.current) {
