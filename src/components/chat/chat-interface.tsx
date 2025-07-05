@@ -144,7 +144,6 @@ export function ChatInterface({
         )}
       </div>
 
-      {/* Input */}
       <div className="flex-shrink-0 p-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
         <div className="max-w-4xl mx-auto">
           <div className="relative flex items-end space-x-2">
