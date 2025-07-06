@@ -1,12 +1,12 @@
-"use client"
+'use client'
 
 export const dynamic = 'force-dynamic'
 
-import React from "react"
-import { Sidebar } from "@/components/ui/sidebar"
-import { ChatInterface } from "@/components/chat/chat-interface"
-import { useChatDB } from "@/hooks/useChatDB"
-import { useAIChat } from "@/hooks/useAIChat"
+import React from 'react'
+import { Sidebar } from '@/components/ui/sidebar'
+import { ChatInterface } from '@/components/chat/chat-interface'
+import { useChatDB } from '@/hooks/useChatDB'
+import { useAIChat } from '@/hooks/useAIChat'
 
 export default function ChatPage() {
   const {
@@ -22,16 +22,11 @@ export default function ChatPage() {
     removeMessage,
     setSidebarCollapsed,
     getCurrentMessages,
-    generateId
+    generateId,
   } = useChatDB()
 
-  const {
-    isGenerating,
-    sendMessage,
-    stopGeneration,
-    handleBranch
-  } = useAIChat({
-    onMessageAdd: async (message) => {
+  const { isGenerating, sendMessage, stopGeneration, handleBranch } = useAIChat({
+    onMessageAdd: async message => {
       if (activeChat) {
         return await addMessage(activeChat, message)
       }
@@ -42,13 +37,13 @@ export default function ChatPage() {
         updateMessage(activeChat, messageId, updates)
       }
     },
-    onMessageRemove: (messageId) => {
+    onMessageRemove: messageId => {
       if (activeChat) {
         removeMessage(activeChat, messageId)
       }
     },
     getCurrentMessages,
-    generateId
+    generateId,
   })
 
   const handleSendMessage = async (content: string) => {
@@ -78,7 +73,7 @@ export default function ChatPage() {
         isCollapsed={sidebarCollapsed}
         onToggleCollapsed={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
-      
+
       <div className="flex-1 flex flex-col">
         <ChatInterface
           messages={currentMessages}

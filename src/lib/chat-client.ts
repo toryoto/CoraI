@@ -37,7 +37,7 @@ export class ChatAPI {
       signal,
       onStream,
       onComplete,
-      onError
+      onError,
     } = options
 
     try {
@@ -50,9 +50,9 @@ export class ChatAPI {
           messages,
           model,
           temperature,
-          stream
+          stream,
         }),
-        signal
+        signal,
       })
 
       if (!response.ok) {
@@ -79,7 +79,7 @@ export class ChatAPI {
             for (const line of lines) {
               if (line.startsWith('data: ')) {
                 const data = line.slice(6).trim()
-                
+
                 if (data === '[DONE]') {
                   onComplete?.(fullContent)
                   return fullContent
@@ -127,8 +127,8 @@ export class ChatAPI {
         body: JSON.stringify({
           messages: [{ role: 'user', content: 'Hello' }],
           stream: false,
-          max_tokens: 10
-        })
+          max_tokens: 10,
+        }),
       })
 
       return response.ok

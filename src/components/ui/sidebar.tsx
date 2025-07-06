@@ -1,11 +1,11 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card } from "@/components/ui/card"
-import { PlusIcon, MessageSquareIcon, PenIcon, TrashIcon, SearchIcon } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card } from '@/components/ui/card'
+import { PlusIcon, MessageSquareIcon, PenIcon, TrashIcon, SearchIcon } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 export interface Chat {
   id: string
@@ -33,15 +33,16 @@ export function Sidebar({
   onDeleteChat,
   onRenameChat,
   isCollapsed = false,
-  onToggleCollapsed
+  onToggleCollapsed,
 }: SidebarProps) {
-  const [searchQuery, setSearchQuery] = useState("")
+  const [searchQuery, setSearchQuery] = useState('')
   const [editingChat, setEditingChat] = useState<string | null>(null)
-  const [editTitle, setEditTitle] = useState("")
+  const [editTitle, setEditTitle] = useState('')
 
-  const filteredChats = chats.filter(chat => 
-    chat.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    chat.preview?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredChats = chats.filter(
+    chat =>
+      chat.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      chat.preview?.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   const handleRename = (chatId: string) => {
@@ -49,7 +50,7 @@ export function Sidebar({
       onRenameChat(chatId, editTitle.trim())
     }
     setEditingChat(null)
-    setEditTitle("")
+    setEditTitle('')
   }
 
   const startEditing = (chat: Chat) => {
@@ -61,20 +62,15 @@ export function Sidebar({
     return (
       <div className="flex flex-col h-full w-16 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800">
         <div className="p-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onNewChat}
-            className="w-8 h-8"
-          >
+          <Button variant="ghost" size="icon" onClick={onNewChat} className="w-8 h-8">
             <PlusIcon className="h-4 w-4" />
           </Button>
         </div>
         <div className="flex-1 overflow-y-auto px-2 space-y-1">
-          {filteredChats.slice(0, 10).map((chat) => (
+          {filteredChats.slice(0, 10).map(chat => (
             <Button
               key={chat.id}
-              variant={activeChat === chat.id ? "secondary" : "ghost"}
+              variant={activeChat === chat.id ? 'secondary' : 'ghost'}
               size="icon"
               onClick={() => onSelectChat(chat.id)}
               className="w-full h-8"
@@ -85,12 +81,7 @@ export function Sidebar({
         </div>
         {onToggleCollapsed && (
           <div className="p-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onToggleCollapsed}
-              className="w-8 h-8"
-            >
+            <Button variant="ghost" size="icon" onClick={onToggleCollapsed} className="w-8 h-8">
               →
             </Button>
           </div>
@@ -104,25 +95,14 @@ export function Sidebar({
       {/* Header */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-800">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            CoraI
-          </h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">CoraI</h2>
           {onToggleCollapsed && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onToggleCollapsed}
-              className="h-8 w-8"
-            >
+            <Button variant="ghost" size="icon" onClick={onToggleCollapsed} className="h-8 w-8">
               ←
             </Button>
           )}
         </div>
-        <Button
-          onClick={onNewChat}
-          className="w-full justify-start"
-          variant="default"
-        >
+        <Button onClick={onNewChat} className="w-full justify-start" variant="default">
           <PlusIcon className="h-4 w-4 mr-2" />
           新しいチャット
         </Button>
@@ -135,7 +115,7 @@ export function Sidebar({
           <Input
             placeholder="チャットを検索..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={e => setSearchQuery(e.target.value)}
             className="pl-10"
           />
         </div>
@@ -145,16 +125,17 @@ export function Sidebar({
       <div className="flex-1 overflow-y-auto p-2">
         {filteredChats.length === 0 ? (
           <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-            {searchQuery ? "チャットが見つかりません" : "チャット履歴がありません"}
+            {searchQuery ? 'チャットが見つかりません' : 'チャット履歴がありません'}
           </div>
         ) : (
           <div className="space-y-1">
-            {filteredChats.map((chat) => (
+            {filteredChats.map(chat => (
               <Card
                 key={chat.id}
                 className={cn(
-                  "p-3 cursor-pointer transition-colors hover:bg-gray-100 dark:hover:bg-gray-800",
-                  activeChat === chat.id && "bg-gray-100 dark:bg-gray-800 border-blue-200 dark:border-blue-800"
+                  'p-3 cursor-pointer transition-colors hover:bg-gray-100 dark:hover:bg-gray-800',
+                  activeChat === chat.id &&
+                    'bg-gray-100 dark:bg-gray-800 border-blue-200 dark:border-blue-800'
                 )}
                 onClick={() => onSelectChat(chat.id)}
               >
@@ -163,18 +144,18 @@ export function Sidebar({
                     {editingChat === chat.id ? (
                       <Input
                         value={editTitle}
-                        onChange={(e) => setEditTitle(e.target.value)}
+                        onChange={e => setEditTitle(e.target.value)}
                         onBlur={() => handleRename(chat.id)}
-                        onKeyDown={(e) => {
+                        onKeyDown={e => {
                           if (e.key === 'Enter') {
                             handleRename(chat.id)
                           }
                           if (e.key === 'Escape') {
                             setEditingChat(null)
-                            setEditTitle("")
+                            setEditTitle('')
                           }
                         }}
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={e => e.stopPropagation()}
                         className="h-6 text-sm font-medium"
                         autoFocus
                       />
@@ -193,7 +174,7 @@ export function Sidebar({
                         month: 'short',
                         day: 'numeric',
                         hour: '2-digit',
-                        minute: '2-digit'
+                        minute: '2-digit',
                       })}
                     </p>
                   </div>
@@ -201,7 +182,7 @@ export function Sidebar({
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={(e) => {
+                      onClick={e => {
                         e.stopPropagation()
                         startEditing(chat)
                       }}
@@ -212,7 +193,7 @@ export function Sidebar({
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={(e) => {
+                      onClick={e => {
                         e.stopPropagation()
                         onDeleteChat(chat.id)
                       }}

@@ -11,11 +11,11 @@ export async function GET() {
           include: {
             messages: {
               take: 1,
-              orderBy: { createdAt: 'desc' }
-            }
-          }
-        }
-      }
+              orderBy: { createdAt: 'desc' },
+            },
+          },
+        },
+      },
     })
 
     return NextResponse.json(chats)
@@ -29,20 +29,20 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { title = "新しいチャット" } = body
+    const { title = '新しいチャット' } = body
 
     const chat = await prisma.chat.create({
       data: {
         title,
         branches: {
           create: {
-            name: "メインブランチ"
-          }
-        }
+            name: 'メインブランチ',
+          },
+        },
       },
       include: {
-        branches: true
-      }
+        branches: true,
+      },
     })
 
     return NextResponse.json(chat)

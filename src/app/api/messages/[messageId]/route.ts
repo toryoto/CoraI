@@ -2,20 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
 // PATCH /api/messages/[messageId] - メッセージを更新
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { messageId: string } }
-) {
+export async function PATCH(request: NextRequest, { params }: { params: { messageId: string } }) {
   try {
     const body = await request.json()
     const { content, isTyping } = body
 
     const message = await prisma.message.update({
       where: { id: params.messageId },
-      data: { 
+      data: {
         content: content !== undefined ? content : undefined,
-        isTyping: isTyping !== undefined ? isTyping : undefined
-      }
+        isTyping: isTyping !== undefined ? isTyping : undefined,
+      },
     })
 
     return NextResponse.json(message)
@@ -26,14 +23,11 @@ export async function PATCH(
 }
 
 // DELETE /api/messages/[messageId] - メッセージを削除（論理削除）
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { messageId: string } }
-) {
+export async function DELETE(request: NextRequest, { params }: { params: { messageId: string } }) {
   try {
     const message = await prisma.message.update({
       where: { id: params.messageId },
-      data: { isDeleted: true }
+      data: { isDeleted: true },
     })
 
     return NextResponse.json(message)
