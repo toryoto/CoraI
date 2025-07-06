@@ -16,6 +16,7 @@
     "db:studio": "npx prisma studio"
   },
   "dependencies": {
+    "@clerk/nextjs": "^6.23.3",
     "@prisma/client": "^6.11.1",
     "@radix-ui/react-slot": "^1.2.3",
     "@supabase/supabase-js": "^2.50.3",

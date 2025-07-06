@@ -37,6 +37,15 @@ export function useChatDB() {
   const fetchChats = useCallback(async () => {
     try {
       const response = await fetch('/api/chats')
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          // 未認証の場合は空配列を返す
+          return []
+        }
+        throw new Error('Failed to fetch chats')
+      }
+
       const data: DBChat[] = await response.json()
 
       const formattedChats = data.map(chat => ({
@@ -105,6 +114,14 @@ export function useChatDB() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: '新しいチャット' }),
       })
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          // 未認証の場合は何もしない
+          return
+        }
+        throw new Error('Failed to create chat')
+      }
 
       const data = await response.json()
       const newChat: Chat = {

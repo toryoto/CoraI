@@ -14,14 +14,16 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// ユーザー認証は後で実装するため、今はシンプルに
 model Chat {
   id        String   @id @default(cuid())
+  userId    String?  // Clerk user ID (optional for migration)
   title     String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
   branches  Branch[]
+  
+  @@index([userId])
 }
 
 model Branch {

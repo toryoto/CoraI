@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { auth } from '@clerk/nextjs/server'
 
 // GET /api/chats - 全チャットを取得
 export async function GET() {
   try {
+    const { userId } = await auth()
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const chats = await prisma.chat.findMany({
+      where: { userId },
       orderBy: { updatedAt: 'desc' },
       include: {
         branches: {
@@ -28,11 +36,18 @@ export async function GET() {
 // POST /api/chats - 新しいチャットを作成
 export async function POST(request: NextRequest) {
   try {
+    const { userId } = await auth()
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const body = await request.json()
     const { title = '新しいチャット' } = body
 
     const chat = await prisma.chat.create({
       data: {
+        userId,
         title,
         branches: {
           create: {

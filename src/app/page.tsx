@@ -1,14 +1,12 @@
-'use client'
+import { auth } from '@clerk/nextjs/server'
+import { redirect } from 'next/navigation'
 
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+export default async function HomePage() {
+  const { userId } = await auth()
 
-export default function HomePage() {
-  const router = useRouter()
-
-  useEffect(() => {
-    router.push('/chat')
-  }, [router])
-
-  return null
+  if (userId) {
+    redirect('/chat')
+  } else {
+    redirect('/sign-in')
+  }
 }

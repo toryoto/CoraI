@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { PlusIcon, MessageSquareIcon, PenIcon, TrashIcon, SearchIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { CustomUserButton } from '@/components/user-button'
 
 export interface Chat {
   id: string
@@ -41,8 +42,8 @@ export function Sidebar({
 
   const filteredChats = chats.filter(
     chat =>
-      chat.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      chat.preview?.toLowerCase().includes(searchQuery.toLowerCase())
+      chat.title?.toLowerCase().includes(searchQuery?.toLowerCase() || '') ||
+      chat.preview?.toLowerCase().includes(searchQuery?.toLowerCase() || '')
   )
 
   const handleRename = (chatId: string) => {
@@ -207,6 +208,11 @@ export function Sidebar({
             ))}
           </div>
         )}
+      </div>
+
+      {/* User Button */}
+      <div className="p-4 border-t border-gray-200 dark:border-gray-800">
+        <CustomUserButton />
       </div>
     </div>
   )
