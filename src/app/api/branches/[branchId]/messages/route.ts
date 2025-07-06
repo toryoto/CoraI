@@ -2,17 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
 // GET /api/branches/[branchId]/messages - ブランチのメッセージを取得
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { branchId: string } }
-) {
+export async function GET(request: NextRequest, { params }: { params: { branchId: string } }) {
   try {
     const messages = await prisma.message.findMany({
-      where: { 
+      where: {
         branchId: params.branchId,
-        isDeleted: false 
+        isDeleted: false,
       },
-      orderBy: { createdAt: 'asc' }
+      orderBy: { createdAt: 'asc' },
     })
 
     return NextResponse.json(messages)
@@ -23,10 +20,7 @@ export async function GET(
 }
 
 // POST /api/branches/[branchId]/messages - 新しいメッセージを作成
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { branchId: string } }
-) {
+export async function POST(request: NextRequest, { params }: { params: { branchId: string } }) {
   try {
     const body = await request.json()
     const { content, role, modelUsed, tokenCount, isTyping } = body
@@ -38,23 +32,25 @@ export async function POST(
         role,
         modelUsed,
         tokenCount,
-        isTyping: isTyping || false
-      }
+        isTyping: isTyping || false,
+      },
     })
 
     // ブランチとチャットの更新日時を更新
-    await prisma.branch.update({
-      where: { id: params.branchId },
-      data: { updatedAt: new Date() },
-      include: {
-        chat: true
-      }
-    }).then(branch => {
-      return prisma.chat.update({
-        where: { id: branch.chatId },
-        data: { updatedAt: new Date() }
+    await prisma.branch
+      .update({
+        where: { id: params.branchId },
+        data: { updatedAt: new Date() },
+        include: {
+          chat: true,
+        },
       })
-    })
+      .then(branch => {
+        return prisma.chat.update({
+          where: { id: branch.chatId },
+          data: { updatedAt: new Date() },
+        })
+      })
 
     return NextResponse.json(message)
   } catch (error) {

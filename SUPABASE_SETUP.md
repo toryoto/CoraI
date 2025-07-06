@@ -18,11 +18,13 @@
      - `Connection string` → `DATABASE_URL` と `DIRECT_URL`
 
 2. `.env.local` ファイルを作成：
+
 ```bash
 cp .env.example .env.local
 ```
 
 3. `.env.local` を編集して実際の値を設定：
+
 ```env
 # OpenAI API Key
 OPENAI_API_KEY=your_actual_openai_api_key
@@ -53,19 +55,24 @@ npm run dev
 ## トラブルシューティング
 
 ### SSL接続エラーが出る場合
+
 DATABASE_URLに `?sslmode=require` を追加：
+
 ```
 DATABASE_URL="postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres?pgbouncer=true&sslmode=require"
 ```
 
 ### マイグレーションが失敗する場合
+
 1. Supabaseダッシュボードで SQL Editor を開く
 2. 以下のコマンドを実行してデータベースをリセット：
+
 ```sql
 -- 既存のテーブルを削除（注意：データが消えます）
 DROP SCHEMA public CASCADE;
 CREATE SCHEMA public;
 ```
+
 3. 再度 `npm run db:push` を実行
 
 ## 便利なコマンド

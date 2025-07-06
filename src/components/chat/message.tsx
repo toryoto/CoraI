@@ -1,9 +1,15 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { CopyIcon, ThumbsUpIcon, ThumbsDownIcon, MoreHorizontalIcon, GitBranchIcon } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import {
+  CopyIcon,
+  ThumbsUpIcon,
+  ThumbsDownIcon,
+  MoreHorizontalIcon,
+  GitBranchIcon,
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 export interface Message {
   id: string
@@ -28,7 +34,7 @@ export function MessageComponent({
   onBranch,
   onLike,
   onDislike,
-  showActions = true
+  showActions = true,
 }: MessageProps) {
   const [isHovered, setIsHovered] = useState(false)
   const isUser = message.role === 'user'
@@ -42,10 +48,10 @@ export function MessageComponent({
   }
 
   return (
-    <div 
+    <div
       className={cn(
-        "group flex w-full py-4 px-6 transition-colors",
-        isUser ? "bg-transparent" : "bg-gray-50 dark:bg-gray-900/50"
+        'group flex w-full py-4 px-6 transition-colors',
+        isUser ? 'bg-transparent' : 'bg-gray-50 dark:bg-gray-900/50'
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -53,13 +59,13 @@ export function MessageComponent({
       <div className="flex w-full max-w-4xl mx-auto">
         {/* Avatar */}
         <div className="flex-shrink-0 mr-4">
-          <div className={cn(
-            "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
-            isUser 
-              ? "bg-blue-500 text-white" 
-              : "bg-green-500 text-white"
-          )}>
-            {isUser ? "You" : "AI"}
+          <div
+            className={cn(
+              'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium',
+              isUser ? 'bg-blue-500 text-white' : 'bg-green-500 text-white'
+            )}
+          >
+            {isUser ? 'You' : 'AI'}
           </div>
         </div>
 
@@ -67,16 +73,16 @@ export function MessageComponent({
         <div className="flex-1 min-w-0">
           <div className="flex items-center mb-2">
             <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-              {isUser ? "You" : "CoraI"}
+              {isUser ? 'You' : 'CoraI'}
             </span>
             <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
               {message.timestamp.toLocaleTimeString('ja-JP', {
                 hour: '2-digit',
-                minute: '2-digit'
+                minute: '2-digit',
               })}
             </span>
           </div>
-          
+
           <div className="prose dark:prose-invert max-w-none">
             {message.isTyping ? (
               <div className="flex items-center space-x-1">
@@ -96,20 +102,17 @@ export function MessageComponent({
 
           {/* Actions */}
           {showActions && !message.isTyping && (
-            <div className={cn(
-              "flex items-center space-x-2 mt-3 transition-opacity",
-              isHovered ? "opacity-100" : "opacity-0"
-            )}>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleCopy}
-                className="h-8 px-2"
-              >
+            <div
+              className={cn(
+                'flex items-center space-x-2 mt-3 transition-opacity',
+                isHovered ? 'opacity-100' : 'opacity-0'
+              )}
+            >
+              <Button variant="ghost" size="sm" onClick={handleCopy} className="h-8 px-2">
                 <CopyIcon className="h-3 w-3 mr-1" />
                 コピー
               </Button>
-              
+
               {!isUser && onBranch && (
                 <Button
                   variant="ghost"
@@ -121,7 +124,7 @@ export function MessageComponent({
                   分岐
                 </Button>
               )}
-              
+
               {!isUser && (
                 <>
                   <Button
@@ -142,12 +145,8 @@ export function MessageComponent({
                   </Button>
                 </>
               )}
-              
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 px-2"
-              >
+
+              <Button variant="ghost" size="sm" className="h-8 px-2">
                 <MoreHorizontalIcon className="h-3 w-3" />
               </Button>
             </div>

@@ -1,10 +1,10 @@
-"use client"
+'use client'
 
-import { useState, useRef, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { MessageComponent, type Message } from "./message"
-import { SendIcon, StopCircleIcon } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { useState, useRef, useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { MessageComponent, type Message } from './message'
+import { SendIcon, StopCircleIcon } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 export interface ChatInterfaceProps {
   messages: Message[]
@@ -21,17 +21,17 @@ export function ChatInterface({
   onSendMessage,
   onStopGeneration,
   isGenerating = false,
-  placeholder = "メッセージを入力してください...",
+  placeholder = 'メッセージを入力してください...',
   disabled = false,
-  onBranch
+  onBranch,
 }: ChatInterfaceProps) {
-  const [input, setInput] = useState("")
+  const [input, setInput] = useState('')
   const [isComposing, setIsComposing] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
   useEffect(() => {
@@ -41,7 +41,7 @@ export function ChatInterface({
   const handleSend = async () => {
     if (input.trim() && !disabled && !isGenerating) {
       await onSendMessage(input.trim())
-      setInput("")
+      setInput('')
       // Reset textarea height
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto'
@@ -58,7 +58,7 @@ export function ChatInterface({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value)
-    
+
     // Auto-resize textarea
     const textarea = e.target
     textarea.style.height = 'auto'
@@ -76,9 +76,7 @@ export function ChatInterface({
       <div className="flex-shrink-0 p-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              CoraI
-            </h1>
+            <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">CoraI</h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               知的生産性を高める会話アシスタント
             </p>
@@ -131,7 +129,7 @@ export function ChatInterface({
           </div>
         ) : (
           <div className="pb-4">
-            {messages.map((message) => (
+            {messages.map(message => (
               <MessageComponent
                 key={message.id}
                 message={message}
@@ -158,13 +156,13 @@ export function ChatInterface({
                 placeholder={placeholder}
                 disabled={disabled || isGenerating}
                 className={cn(
-                  "w-full px-4 py-3 pr-12 border border-gray-300 dark:border-gray-600 rounded-xl",
-                  "bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100",
-                  "placeholder-gray-500 dark:placeholder-gray-400",
-                  "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
-                  "disabled:opacity-50 disabled:cursor-not-allowed",
-                  "resize-none overflow-hidden",
-                  "min-h-[48px] max-h-[200px]"
+                  'w-full px-4 py-3 pr-12 border border-gray-300 dark:border-gray-600 rounded-xl',
+                  'bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100',
+                  'placeholder-gray-500 dark:placeholder-gray-400',
+                  'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+                  'disabled:opacity-50 disabled:cursor-not-allowed',
+                  'resize-none overflow-hidden',
+                  'min-h-[48px] max-h-[200px]'
                 )}
                 rows={1}
               />

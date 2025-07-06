@@ -21,7 +21,13 @@ export interface ChatRequest {
 export async function POST(request: NextRequest) {
   try {
     const body: ChatRequest = await request.json()
-    const { messages, model = 'gpt-4o-mini', temperature = 0.7, max_tokens = 2000, stream = true } = body
+    const {
+      messages,
+      model = 'gpt-4o-mini',
+      temperature = 0.7,
+      max_tokens = 2000,
+      stream = true,
+    } = body
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json(
@@ -33,13 +39,11 @@ export async function POST(request: NextRequest) {
     // Add system message if not present
     const systemMessage: ChatMessage = {
       role: 'system',
-      content: 'あなたはCoraI、知的生産性を高める会話アシスタントです。ユーザーの質問に対して、詳細で建設的な回答を提供してください。複数の観点から物事を分析し、MECEに整理された情報を提供することを心がけてください。'
+      content:
+        'あなたはCoraI、知的生産性を高める会話アシスタントです。ユーザーの質問に対して、詳細で建設的な回答を提供してください。複数の観点から物事を分析し、MECEに整理された情報を提供することを心がけてください。',
     }
 
-    const processedMessages = [
-      systemMessage,
-      ...messages.filter(msg => msg.role !== 'system')
-    ]
+    const processedMessages = [systemMessage, ...messages.filter(msg => msg.role !== 'system')]
 
     if (stream) {
       // Streaming response
@@ -70,15 +74,15 @@ export async function POST(request: NextRequest) {
             console.error('Streaming error:', error)
             controller.error(error)
           }
-        }
+        },
       })
 
       return new Response(readable, {
         headers: {
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
-        }
+          Connection: 'keep-alive',
+        },
       })
     } else {
       // Non-streaming response
@@ -91,32 +95,29 @@ export async function POST(request: NextRequest) {
       })
 
       const content = response.choices[0]?.message?.content || ''
-      
+
       return NextResponse.json({
         content,
         usage: response.usage,
-        model: response.model
+        model: response.model,
       })
     }
   } catch (error) {
     console.error('OpenAI API error:', error)
-    
+
     if (error instanceof Error) {
       // Handle specific OpenAI errors
       if (error.message.includes('API key')) {
-        return NextResponse.json(
-          { error: 'Invalid API key' },
-          { status: 401 }
-        )
+        return NextResponse.json({ error: 'Invalid API key' }, { status: 401 })
       }
-      
+
       if (error.message.includes('rate limit')) {
         return NextResponse.json(
           { error: 'Rate limit exceeded. Please try again later.' },
           { status: 429 }
         )
       }
-      
+
       if (error.message.includes('quota')) {
         return NextResponse.json(
           { error: 'API quota exceeded. Please check your OpenAI account.' },
@@ -124,10 +125,7 @@ export async function POST(request: NextRequest) {
         )
       }
     }
-    
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
