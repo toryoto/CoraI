@@ -75,6 +75,7 @@ The application follows a clean architecture with separation of concerns:
 ## Branch/Fork Functionality (In Development)
 
 ### Overview
+
 The application is implementing an innovative **chat branching system** that allows users to create parallel conversation threads without contaminating the main conversation context. This feature enables:
 
 - **Context preservation**: Main conversation flow remains intact
@@ -84,6 +85,7 @@ The application is implementing an innovative **chat branching system** that all
 ### Architecture for Branching
 
 #### Data Model
+
 ```typescript
 interface Branch {
   id: string
@@ -96,7 +98,7 @@ interface Branch {
   metadata: {
     purpose: string
     tags: string[]
-    priority: "high" | "medium" | "low"
+    priority: 'high' | 'medium' | 'low'
   }
 }
 
@@ -105,13 +107,14 @@ interface Message {
   branchId: string
   parentMessageId: string | null
   content: string
-  role: "user" | "assistant"
+  role: 'user' | 'assistant'
   timestamp: Date
   metadata: Json
 }
 ```
 
 #### Branch Creation Flow
+
 1. User hovers over AI message → Branch button (🔀) appears
 2. Click branch button → Branch creation modal opens
 3. Select branch type:
@@ -124,6 +127,7 @@ interface Message {
 6. Visual feedback in React Flow diagram
 
 #### UI Components
+
 - **Branch Creation Modal**: Comprehensive branch configuration
 - **React Flow Integration**: Visual representation of conversation trees
 - **Dual View UI**: Chat view ⇄ Flow view toggle
@@ -131,6 +135,7 @@ interface Message {
 - **Parallel Processing**: Real-time progress of multiple branches
 
 #### Technical Implementation
+
 - **Independent Context**: Each branch maintains separate message history
 - **Parallel API Calls**: Multiple OpenAI streams simultaneously
 - **State Management**: Complex branch state with React hooks
@@ -139,26 +144,31 @@ interface Message {
 ### Development Phases
 
 **Phase 1: Basic Branching (2 weeks)**
+
 - Single branch creation and switching
 - Basic UI implementation
 - Database schema implementation
 
 **Phase 2: Visualization (2 weeks)**
+
 - React Flow integration
 - Dual view UI (chat ⇄ flow)
 - Branch color coding and visual feedback
 
 **Phase 3: Advanced Features (2 weeks)**
+
 - Multiple branch creation modal
 - Parallel processing capability
 - Branch comparison tools
 
 **Phase 4: Optimization (1 week)**
+
 - Performance optimization
 - Mobile responsiveness
 - Testing and error handling
 
 ### Key Files for Branch Implementation
+
 - `src/hooks/useBranchManager.ts` - Branch state management
 - `src/components/BranchCreationModal.tsx` - Branch creation UI
 - `src/components/BranchVisualizer.tsx` - React Flow integration

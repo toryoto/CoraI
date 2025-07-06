@@ -141,15 +141,9 @@ export function useAIChat({
     setIsGenerating(false)
   }, [abortController])
 
-  const handleBranch = useCallback((messageId: string) => {
-    // TODO: Implement branching functionality
-    console.log('Branch from message:', messageId)
-  }, [])
-
   return {
     isGenerating,
     sendMessage,
     stopGeneration,
-    handleBranch,
   }
 }

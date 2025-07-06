@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic'
 
 import React from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import { Sidebar } from '@/components/ui/sidebar'
 import { ChatInterface } from '@/components/chat/chat-interface'
 import { BranchCreationModal } from '@/components/branch/branch-creation-modal'
@@ -11,8 +11,10 @@ import { useChatDB } from '@/hooks/useChatDB'
 import { useAIChat } from '@/hooks/useAIChat'
 import { useBranchManager } from '@/hooks/useBranchManager'
 
-export default function ChatPage() {
+export default function ChatIdPage() {
+  const params = useParams()
   const searchParams = useSearchParams()
+  const chatId = params.chatId as string
   const branchId = searchParams.get('branch')
 
   const {
@@ -33,10 +35,17 @@ export default function ChatPage() {
 
   // Branch management
   const branchManager = useBranchManager({
-    chatId: activeChat || 'default',
+    chatId: chatId,
     initialBranches: [],
     initialMessages: {},
   })
+
+  // Select the chat if not already selected
+  React.useEffect(() => {
+    if (chatId && activeChat !== chatId) {
+      selectChat(chatId)
+    }
+  }, [chatId, activeChat, selectChat])
 
   // Switch to the specified branch if provided in URL
   React.useEffect(() => {
@@ -47,19 +56,19 @@ export default function ChatPage() {
 
   const { isGenerating, sendMessage, stopGeneration } = useAIChat({
     onMessageAdd: async message => {
-      if (activeChat) {
-        return await addMessage(activeChat, message)
+      if (chatId) {
+        return await addMessage(chatId, message)
       }
       return null
     },
     onMessageUpdate: (messageId, updates) => {
-      if (activeChat) {
-        updateMessage(activeChat, messageId, updates)
+      if (chatId) {
+        updateMessage(chatId, messageId, updates)
       }
     },
     onMessageRemove: messageId => {
-      if (activeChat) {
-        removeMessage(activeChat, messageId)
+      if (chatId) {
+        removeMessage(chatId, messageId)
       }
     },
     getCurrentMessages,
@@ -71,22 +80,10 @@ export default function ChatPage() {
   }
 
   const handleViewBranches = () => {
-    if (activeChat) {
-      window.location.href = `/chat/${activeChat}/branch`
+    if (chatId) {
+      window.location.href = `/chat/${chatId}/branch`
     }
   }
-
-  // Redirect to chatId route if we have an active chat
-  React.useEffect(() => {
-    if (activeChat && !window.location.pathname.includes(activeChat)) {
-      // Only redirect if we're not already on the right path
-      if (branchId) {
-        window.location.href = `/chat/${activeChat}?branch=${branchId}`
-      } else {
-        window.location.href = `/chat/${activeChat}`
-      }
-    }
-  }, [activeChat, branchId])
 
   const currentBranch = React.useMemo(() => {
     if (branchManager.currentBranchId) {
@@ -103,15 +100,6 @@ export default function ChatPage() {
   }, [branchManager.currentBranchId, branchManager.branches])
 
   const handleSendMessage = async (content: string) => {
-    if (!activeChat) {
-      // アクティブなチャットがない場合は新しいチャットを作成
-      const newChatId = await createNewChat()
-      if (newChatId) {
-        // 新しいチャットが作成されたら、そのチャットでメッセージを送信
-        sendMessage(content)
-      }
-      return
-    }
     sendMessage(content)
   }
 

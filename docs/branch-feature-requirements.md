@@ -3,11 +3,13 @@
 ## 1. 概要
 
 ### 1.1 目的
+
 - **コンテキスト汚染防止**: メインの会話の流れを保ちながら、特定の話題を深堀りする
 - **並列議論**: 複数の観点から同時に議論を進める
 - **探索的会話**: 会話の可能性を最大限に活用する
 
 ### 1.2 対象ユーザー
+
 - 詳細な調査や学習を行いたいユーザー
 - 複数の選択肢を比較検討したいユーザー
 - 会話の流れを整理したいユーザー
@@ -17,36 +19,39 @@
 ### 2.1 分岐作成機能
 
 #### 2.1.1 分岐トリガー
+
 - **対象**: 任意のAIメッセージ
 - **操作**: ホバー時に分岐ボタン（🔀）を表示
 - **クリック**: 分岐メニューモーダルを開く
 
 #### 2.1.2 分岐メニューモーダル
+
 ```typescript
 interface BranchCreationModal {
   branchTypes: {
-    single: "単一分岐 - 1つの新しい質問"
-    multiple: "複数分岐 - 複数の質問を同時に作成"
-    compare: "比較分岐 - 同じ質問を異なる方法で"
-    explore: "探索分岐 - 関連する質問を自動生成"
+    single: '単一分岐 - 1つの新しい質問'
+    multiple: '複数分岐 - 複数の質問を同時に作成'
+    compare: '比較分岐 - 同じ質問を異なる方法で'
+    explore: '探索分岐 - 関連する質問を自動生成'
   }
-  
+
   settings: {
     branchCount: number // 作成する分岐数 (1-5)
     branchNames: string[] // 各分岐の名前
     branchColors: string[] // 各分岐の色
     questions: string[] // 各分岐の質問内容
   }
-  
+
   metadata: {
     purpose: string // 分岐の目的
     tags: string[] // 分類タグ
-    priority: "high" | "medium" | "low"
+    priority: 'high' | 'medium' | 'low'
   }
 }
 ```
 
 #### 2.1.3 分岐作成フロー
+
 1. 分岐ボタンクリック
 2. モーダル表示
 3. 分岐タイプ選択
@@ -59,6 +64,7 @@ interface BranchCreationModal {
 ### 2.2 分岐管理機能
 
 #### 2.2.1 分岐の状態管理
+
 ```typescript
 interface Branch {
   id: string
@@ -71,7 +77,7 @@ interface Branch {
   metadata: {
     purpose: string
     tags: string[]
-    priority: "high" | "medium" | "low"
+    priority: 'high' | 'medium' | 'low'
   }
 }
 
@@ -80,15 +86,16 @@ interface Message {
   branchId: string
   parentMessageId: string | null
   content: string
-  role: "user" | "assistant"
+  role: 'user' | 'assistant'
   timestamp: Date
   metadata: Json
 }
 ```
 
 #### 2.2.2 分岐切り替え
+
 - **アクティブ分岐**: 現在の会話対象
-- **切り替え方法**: 
+- **切り替え方法**:
   - React Flowのノードクリック
   - 分岐リストからの選択
   - パンくずリストからの選択
@@ -96,7 +103,8 @@ interface Message {
 ### 2.3 視覚化機能
 
 #### 2.3.1 React Flow統合
-- **ノードタイプ**: 
+
+- **ノードタイプ**:
   - MessageNode: 個別メッセージ
   - BranchNode: 分岐点
   - SummaryNode: 分岐の概要
@@ -106,8 +114,9 @@ interface Message {
   - 参照関係
 
 #### 2.3.2 レイアウト
+
 ```typescript
-type LayoutType = "horizontal" | "vertical" | "radial"
+type LayoutType = 'horizontal' | 'vertical' | 'radial'
 
 interface ViewConfig {
   layout: LayoutType
@@ -118,6 +127,7 @@ interface ViewConfig {
 ```
 
 #### 2.3.3 デュアルビューUI
+
 - **メインビュー**: 通常のチャット画面
 - **フロービュー**: React Flowによる分岐視覚化
 - **切り替え**: サイドバーのトグルボタン
@@ -125,16 +135,19 @@ interface ViewConfig {
 ## 3. 非機能要件
 
 ### 3.1 パフォーマンス
+
 - **分岐作成時間**: 1秒以内
 - **並列処理**: 最大5分岐まで同時実行
 - **React Flow描画**: 100ノードまで60FPSを維持
 
 ### 3.2 データ整合性
+
 - **分岐の独立性**: 各分岐のコンテキストは完全に独立
 - **参照の整合性**: 親子関係の整合性を保持
 - **状態の同期**: UI状態とデータベース状態の一致
 
 ### 3.3 ユーザビリティ
+
 - **直感的操作**: 分岐作成は2クリック以内
 - **視覚的明確性**: アクティブ分岐の明確な表示
 - **レスポンシブ**: モバイル対応
@@ -142,6 +155,7 @@ interface ViewConfig {
 ## 4. 技術仕様
 
 ### 4.1 データベース設計
+
 ```sql
 -- チャットテーブル
 CREATE TABLE chats (
@@ -178,6 +192,7 @@ CREATE TABLE messages (
 ```
 
 ### 4.2 API設計
+
 ```typescript
 // 分岐作成API
 POST /api/chats/:chatId/branches
@@ -205,6 +220,7 @@ DELETE /api/chats/:chatId/branches/:branchId
 ```
 
 ### 4.3 状態管理
+
 ```typescript
 interface ChatState {
   activeBranchId: string
@@ -221,21 +237,25 @@ interface ChatState {
 ## 5. 実装フェーズ
 
 ### Phase 1: 基本機能 (2週間)
+
 - [ ] 単一分岐の作成・切り替え
 - [ ] 基本的なUI実装
 - [ ] データベース設計・実装
 
 ### Phase 2: 視覚化 (2週間)
+
 - [ ] React Flow統合
 - [ ] デュアルビューUI
 - [ ] 分岐の色分け・アイコン
 
 ### Phase 3: 高度な機能 (2週間)
+
 - [ ] 複数分岐の同時作成
 - [ ] 分岐メニューモーダル
 - [ ] 並列処理機能
 
 ### Phase 4: 最適化 (1週間)
+
 - [ ] パフォーマンス最適化
 - [ ] モバイル対応
 - [ ] テスト実装
@@ -243,11 +263,13 @@ interface ChatState {
 ## 6. 成功指標
 
 ### 6.1 利用指標
+
 - 分岐作成率: 会話あたり平均2分岐以上
 - 分岐活用率: 作成した分岐の80%以上がメッセージ交換
 - ユーザー継続率: 分岐機能利用後の継続利用率向上
 
 ### 6.2 技術指標
+
 - 分岐作成時間: 平均1秒以内
 - React Flow描画時間: 100ms以内
 - エラー率: 0.1%以下
@@ -255,16 +277,19 @@ interface ChatState {
 ## 7. リスク分析
 
 ### 7.1 技術リスク
+
 - **複雑性**: 分岐管理の複雑さによるバグ
 - **パフォーマンス**: 大量の分岐による性能劣化
 - **状態管理**: 複数分岐の状態同期の困難さ
 
 ### 7.2 UXリスク
+
 - **認知負荷**: 複雑なUI による混乱
 - **情報過多**: 多数の分岐による情報の氾濫
 - **操作迷子**: 分岐間の移動での迷子
 
 ### 7.3 対策
+
 - **段階的実装**: 最小限の機能から開始
 - **ユーザーテスト**: 早期かつ継続的なフィードバック収集
 - **パフォーマンス監視**: リアルタイムでの性能監視

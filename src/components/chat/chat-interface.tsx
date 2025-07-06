@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { MessageComponent, type Message } from './message'
-import { SendIcon, StopCircleIcon } from 'lucide-react'
+import { SendIcon, StopCircleIcon, GitBranch, Network } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export interface ChatInterfaceProps {
@@ -14,6 +14,12 @@ export interface ChatInterfaceProps {
   placeholder?: string
   disabled?: boolean
   onBranch?: (messageId: string) => void
+  currentBranch?: {
+    id: string
+    name: string
+    color: string
+  }
+  onViewBranches?: () => void
 }
 
 export function ChatInterface({
@@ -24,6 +30,8 @@ export function ChatInterface({
   placeholder = 'メッセージを入力してください...',
   disabled = false,
   onBranch,
+  currentBranch,
+  onViewBranches,
 }: ChatInterfaceProps) {
   const [input, setInput] = useState('')
   const [isComposing, setIsComposing] = useState(false)
@@ -75,23 +83,58 @@ export function ChatInterface({
       {/* Header */}
       <div className="flex-shrink-0 p-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">CoraI</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              知的生産性を高める会話アシスタント
-            </p>
+          <div className="flex items-center gap-4">
+            <div>
+              <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                CoraI
+                {currentBranch && (
+                  <span className="ml-2 text-sm font-normal text-gray-500">
+                    • {currentBranch.name}
+                  </span>
+                )}
+              </h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {currentBranch ? (
+                  <span className="flex items-center gap-1">
+                    <GitBranch className="h-3 w-3" />
+                    ブランチモード - 独立した会話スレッド
+                  </span>
+                ) : (
+                  '知的生産性を高める会話アシスタント'
+                )}
+              </p>
+            </div>
+            {currentBranch && (
+              <div
+                className="w-3 h-3 rounded-full"
+                style={{ backgroundColor: currentBranch.color }}
+              />
+            )}
           </div>
-          {isGenerating && onStopGeneration && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onStopGeneration}
-              className="text-red-600 hover:text-red-700"
-            >
-              <StopCircleIcon className="h-4 w-4 mr-1" />
-              停止
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {onViewBranches && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onViewBranches}
+                className="flex items-center gap-2"
+              >
+                <Network className="h-4 w-4" />
+                ツリービュー
+              </Button>
+            )}
+            {isGenerating && onStopGeneration && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onStopGeneration}
+                className="text-red-600 hover:text-red-700"
+              >
+                <StopCircleIcon className="h-4 w-4 mr-1" />
+                停止
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
