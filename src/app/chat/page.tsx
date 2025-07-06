@@ -8,7 +8,6 @@ import { ChatInterface } from "@/components/chat/chat-interface"
 import { useChatDB } from "@/hooks/useChatDB"
 import { useAIChat } from "@/hooks/useAIChat"
 
-
 export default function ChatPage() {
   const {
     chats,
@@ -25,8 +24,6 @@ export default function ChatPage() {
     getCurrentMessages,
     generateId
   } = useChatDB()
-
-
 
   const {
     isGenerating,

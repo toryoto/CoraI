@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { ChatAPI, type ChatMessage } from '@/lib/api'
+import { ChatAPI, type ChatMessage } from '@/lib/chat-client'
 import { type Message } from '@/components/chat/message'
 
 export interface UseAIChatOptions {

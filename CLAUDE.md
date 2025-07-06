@@ -17,7 +17,7 @@ This is a Next.js 14 application using the App Router with TypeScript and Tailwi
 - **App Router**: Uses Next.js 14 App Router pattern in `src/app/`
 - **Component Library**: Built with shadcn/ui components in `src/components/ui/`
 - **Custom Hooks**: Separation of concerns with reusable hooks in `src/hooks/`
-- **API Layer**: Clean API abstraction in `src/lib/api.ts`
+- **API Layer**: Clean API abstraction in `src/lib/chat-client.ts`
 - **Styling**: Tailwind CSS with CSS variables for theming, supports dark mode
 - **TypeScript**: Strict configuration with path aliases (`@/*` maps to `src/*`)
 
@@ -55,12 +55,12 @@ The application follows a clean architecture with separation of concerns:
   - `useLocalStorage`: Generic localStorage persistence
   - `useChatManager`: Chat and message state management
   - `useAIChat`: AI API integration and streaming logic
-- **API Layer**: `src/lib/api.ts` provides clean interface to OpenAI API
+- **API Layer**: `src/lib/chat-client.ts` provides clean interface to OpenAI API
 - **Components**: Pure presentation components with minimal logic
 
 ### API Integration
 - OpenAI API integration is implemented in `src/app/api/chat/route.ts`
-- Client-side API wrapper in `src/lib/api.ts` handles streaming responses
+- Client-side API wrapper in `src/lib/chat-client.ts` handles streaming responses
 - Environment variable `OPENAI_API_KEY` must be set in `.env`
 - Default model: GPT-4o-mini (configurable)
 - Supports both streaming and non-streaming responses
