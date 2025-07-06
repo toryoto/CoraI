@@ -54,13 +54,8 @@ const BranchNode = ({ data }: { data: BranchNodeData }) => {
       }}
     >
       <div className="flex items-center gap-2 mb-2">
-        <div
-          className="w-3 h-3 rounded-full"
-          style={{ backgroundColor: data.branch.color }}
-        />
-        <span className="font-medium text-gray-900 dark:text-gray-100">
-          {data.branch.name}
-        </span>
+        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: data.branch.color }} />
+        <span className="font-medium text-gray-900 dark:text-gray-100">{data.branch.name}</span>
         <GitBranch className="w-4 h-4 text-gray-500" />
       </div>
 
@@ -153,7 +148,9 @@ export function BranchTreeView({
         data: {
           branch,
           messageCount: branchMessages.length,
-          latestMessage: latestMessage?.slice(0, 100) + (latestMessage && latestMessage.length > 100 ? '...' : ''),
+          latestMessage:
+            latestMessage?.slice(0, 100) +
+            (latestMessage && latestMessage.length > 100 ? '...' : ''),
           isActive: branch.id === currentBranchId,
           onClick: () => {
             onBranchSelect(branch.id)
@@ -200,14 +197,17 @@ export function BranchTreeView({
     }
   }, [router, chatId, currentBranchId])
 
-  const handleNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
-    // Navigate to chat with selected branch
-    if (node.id === 'main') {
-      router.push(`/chat/${chatId}`)
-    } else {
-      router.push(`/chat/${chatId}?branch=${node.id}`)
-    }
-  }, [router, chatId])
+  const handleNodeClick = useCallback(
+    (event: React.MouseEvent, node: Node) => {
+      // Navigate to chat with selected branch
+      if (node.id === 'main') {
+        router.push(`/chat/${chatId}`)
+      } else {
+        router.push(`/chat/${chatId}?branch=${node.id}`)
+      }
+    },
+    [router, chatId]
+  )
 
   return (
     <div className="w-full h-full flex flex-col">
@@ -257,7 +257,7 @@ export function BranchTreeView({
             }}
             zoomable
             pannable
-            nodeColor={(node) => {
+            nodeColor={node => {
               const branch = (node.data as BranchNodeData).branch
               return branch.color
             }}

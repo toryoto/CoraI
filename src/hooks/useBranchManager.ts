@@ -141,22 +141,24 @@ export const useBranchManager = ({
           // Update the typing message with accumulated content
           setMessages(prev => ({
             ...prev,
-            [branchId]: prev[branchId]?.map(msg =>
-              msg.id === typingMessage.id
-                ? { ...msg, content: accumulatedContent, metadata: { isTyping: false } }
-                : msg
-            ) || [],
+            [branchId]:
+              prev[branchId]?.map(msg =>
+                msg.id === typingMessage.id
+                  ? { ...msg, content: accumulatedContent, metadata: { isTyping: false } }
+                  : msg
+              ) || [],
           }))
         },
         onComplete: (fullContent: string) => {
           // Final update to ensure we have the complete message
           setMessages(prev => ({
             ...prev,
-            [branchId]: prev[branchId]?.map(msg =>
-              msg.id === typingMessage.id
-                ? { ...msg, content: fullContent, metadata: { isTyping: false } }
-                : msg
-            ) || [],
+            [branchId]:
+              prev[branchId]?.map(msg =>
+                msg.id === typingMessage.id
+                  ? { ...msg, content: fullContent, metadata: { isTyping: false } }
+                  : msg
+              ) || [],
           }))
         },
         onError: (error: string) => {
@@ -164,11 +166,16 @@ export const useBranchManager = ({
           // Replace typing message with error message
           setMessages(prev => ({
             ...prev,
-            [branchId]: prev[branchId]?.map(msg =>
-              msg.id === typingMessage.id
-                ? { ...msg, content: `エラーが発生しました: ${error}`, metadata: { isTyping: false } }
-                : msg
-            ) || [],
+            [branchId]:
+              prev[branchId]?.map(msg =>
+                msg.id === typingMessage.id
+                  ? {
+                      ...msg,
+                      content: `エラーが発生しました: ${error}`,
+                      metadata: { isTyping: false },
+                    }
+                  : msg
+              ) || [],
           }))
         },
       })
