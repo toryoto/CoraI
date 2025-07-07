@@ -155,13 +155,14 @@ export function BranchTreeView({
           onClick: () => {
             onBranchSelect(branch.id)
             // Navigate to chat after selecting
-            if (branch.id === 'main') {
+            if (branch.parentBranchId === null || branch.name === 'メインブランチ') {
+              // This is the main branch
               router.push(`/chat/${chatId}`)
             } else {
-              router.push(`/chat/${chatId}?branch=${branch.id}`)
+              router.push(`/chat/${chatId}/branch/${branch.id}`)
             }
           },
-        } as BranchNodeData,
+        } as Record<string, unknown>,
       })
 
       // Create edge from parent to this branch
@@ -190,23 +191,34 @@ export function BranchTreeView({
   }, [nodes, edges, setNodes, setEdges])
 
   const handleBackToChat = useCallback(() => {
-    if (currentBranchId && currentBranchId !== 'main') {
-      router.push(`/chat/${chatId}?branch=${currentBranchId}`)
+    if (currentBranchId) {
+      const currentBranch = branches.find(b => b.id === currentBranchId)
+      if (
+        currentBranch &&
+        (currentBranch.parentBranchId === null || currentBranch.name === 'メインブランチ')
+      ) {
+        // This is the main branch
+        router.push(`/chat/${chatId}`)
+      } else {
+        router.push(`/chat/${chatId}/branch/${currentBranchId}`)
+      }
     } else {
       router.push(`/chat/${chatId}`)
     }
-  }, [router, chatId, currentBranchId])
+  }, [router, chatId, currentBranchId, branches])
 
   const handleNodeClick = useCallback(
     (event: React.MouseEvent, node: Node) => {
-      // Navigate to chat with selected branch
-      if (node.id === 'main') {
+      // Find the branch to check if it's main
+      const branch = branches.find(b => b.id === node.id)
+      if (branch && (branch.parentBranchId === null || branch.name === 'メインブランチ')) {
+        // This is the main branch
         router.push(`/chat/${chatId}`)
       } else {
-        router.push(`/chat/${chatId}?branch=${node.id}`)
+        router.push(`/chat/${chatId}/branch/${node.id}`)
       }
     },
-    [router, chatId]
+    [router, chatId, branches]
   )
 
   return (
@@ -258,7 +270,7 @@ export function BranchTreeView({
             zoomable
             pannable
             nodeColor={node => {
-              const branch = (node.data as BranchNodeData).branch
+              const branch = (node.data as unknown as BranchNodeData).branch
               return branch.color
             }}
           />

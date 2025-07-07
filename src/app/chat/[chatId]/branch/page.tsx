@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic'
 
 import React from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { Sidebar } from '@/components/ui/sidebar'
 import { BranchTreeView } from '@/components/branch/branch-tree-view'
 import { useChatDB } from '@/hooks/useChatDB'
@@ -11,13 +11,13 @@ import { useBranchManager } from '@/hooks/useBranchManager'
 
 export default function BranchPage() {
   const params = useParams()
+  const router = useRouter()
   const chatId = params.chatId as string
 
   const {
     chats,
     activeChat,
     sidebarCollapsed,
-    createNewChat,
     selectChat,
     deleteChat,
     renameChat,
@@ -31,6 +31,54 @@ export default function BranchPage() {
     initialMessages: {},
   })
 
+  // Fetch branches from API
+  React.useEffect(() => {
+    const fetchBranches = async () => {
+      try {
+        console.log('[BranchPage] Fetching branches for chat:', chatId)
+        const response = await fetch(`/api/chats/${chatId}/branches`)
+        if (response.ok) {
+          const branches = await response.json()
+          console.log('[BranchPage] Fetched branches:', branches)
+          // Convert API branches to branch manager format
+          const formattedBranches = branches.map((branch: any) => ({
+            id: branch.id,
+            chatId: branch.chatId,
+            parentBranchId: branch.parentBranchId,
+            name: branch.name,
+            color: branch.color || '#3b82f6', // Default color
+            isActive: false,
+            createdAt: new Date(branch.createdAt),
+            updatedAt: new Date(branch.updatedAt),
+            metadata: branch.metadata || {},
+          }))
+          branchManager.setBranches(formattedBranches)
+
+          // Also set messages for each branch
+          const messagesData: Record<string, any[]> = {}
+          branches.forEach((branch: any) => {
+            messagesData[branch.id] = branch.messages.map((msg: any) => ({
+              id: msg.id,
+              branchId: msg.branchId,
+              parentMessageId: msg.parentMessageId,
+              content: msg.content,
+              role: msg.role,
+              timestamp: new Date(msg.createdAt),
+              metadata: msg.metadata || {},
+            }))
+          })
+          branchManager.setMessages(messagesData)
+        }
+      } catch (error) {
+        console.error('[BranchPage] Failed to fetch branches:', error)
+      }
+    }
+
+    if (chatId) {
+      fetchBranches()
+    }
+  }, [chatId]) // Remove branchManager from dependencies
+
   // Select the chat if not already selected
   React.useEffect(() => {
     if (chatId && activeChat !== chatId) {
@@ -43,8 +91,14 @@ export default function BranchPage() {
       <Sidebar
         chats={chats}
         activeChat={activeChat}
-        onNewChat={createNewChat}
-        onSelectChat={selectChat}
+        onNewChat={() => {
+          console.log('[BranchPage] New chat button clicked')
+          router.push('/chat/new')
+        }}
+        onSelectChat={newChatId => {
+          selectChat(newChatId)
+          router.push(`/chat/${newChatId}`)
+        }}
         onDeleteChat={deleteChat}
         onRenameChat={renameChat}
         isCollapsed={sidebarCollapsed}

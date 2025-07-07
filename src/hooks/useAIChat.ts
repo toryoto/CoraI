@@ -79,17 +79,27 @@ export function useAIChat({
           onStream: (streamContent: string) => {
             accumulatedContent += streamContent
 
-            // Update the typing message with accumulated content
+            // Update the typing message with accumulated content (mark as streaming)
             onMessageUpdate(typingMessageId, {
               content: accumulatedContent,
               isTyping: false,
+              isStreaming: true, // カスタムフラグでストリーミング中であることを示す
             })
           },
           onComplete: (fullContent: string) => {
-            // Final update to ensure we have the complete message
+            // Use accumulated content if fullContent is empty
+            const finalContent = fullContent || accumulatedContent
+            console.log('[useAIChat] onComplete called with:', {
+              fullContent,
+              accumulatedContent,
+              finalContent,
+            })
+
+            // Final update to ensure we have the complete message (not streaming)
             onMessageUpdate(typingMessageId, {
-              content: fullContent,
+              content: finalContent,
               isTyping: false,
+              isStreaming: false, // ストリーミング完了
             })
             setIsGenerating(false)
             setAbortController(null)

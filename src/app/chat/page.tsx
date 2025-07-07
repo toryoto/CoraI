@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic'
 
 import React from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { Sidebar } from '@/components/ui/sidebar'
 import { ChatInterface } from '@/components/chat/chat-interface'
 import { BranchCreationModal } from '@/components/branch/branch-creation-modal'
@@ -13,6 +13,7 @@ import { useBranchManager } from '@/hooks/useBranchManager'
 
 export default function ChatPage() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const branchId = searchParams.get('branch')
 
   const {
@@ -76,9 +77,12 @@ export default function ChatPage() {
     }
   }
 
-  // Redirect to chatId route if we have an active chat
+  // Redirect to chatId route if we have an active chat, or to /chat/new if no chats
   React.useEffect(() => {
-    if (activeChat && !window.location.pathname.includes(activeChat)) {
+    if (!activeChat && chats.length === 0) {
+      // No chats exist, redirect to new chat page
+      router.push('/chat/new')
+    } else if (activeChat && !window.location.pathname.includes(activeChat)) {
       // Only redirect if we're not already on the right path
       if (branchId) {
         window.location.href = `/chat/${activeChat}?branch=${branchId}`
@@ -86,7 +90,7 @@ export default function ChatPage() {
         window.location.href = `/chat/${activeChat}`
       }
     }
-  }, [activeChat, branchId])
+  }, [activeChat, branchId, chats.length, router])
 
   const currentBranch = React.useMemo(() => {
     if (branchManager.currentBranchId) {
@@ -105,8 +109,8 @@ export default function ChatPage() {
   const handleSendMessage = async (content: string) => {
     if (!activeChat) {
       // アクティブなチャットがない場合は新しいチャットを作成
-      const newChatId = await createNewChat()
-      if (newChatId) {
+      const newChatData = await createNewChat()
+      if (newChatData) {
         // 新しいチャットが作成されたら、そのチャットでメッセージを送信
         sendMessage(content)
       }
@@ -135,8 +139,14 @@ export default function ChatPage() {
       <Sidebar
         chats={chats}
         activeChat={activeChat}
-        onNewChat={createNewChat}
-        onSelectChat={selectChat}
+        onNewChat={() => {
+          console.log('[ChatPage] New chat button clicked')
+          router.push('/chat/new')
+        }}
+        onSelectChat={chatId => {
+          selectChat(chatId)
+          router.push(`/chat/${chatId}`)
+        }}
         onDeleteChat={deleteChat}
         onRenameChat={renameChat}
         isCollapsed={sidebarCollapsed}

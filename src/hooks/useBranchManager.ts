@@ -10,6 +10,13 @@ import {
 } from '@/types/branch'
 import { ChatAPI, type ChatMessage } from '@/lib/chat-client'
 
+// Extend Window interface for streaming timeout
+declare global {
+  interface Window {
+    streamingUpdateTimeout?: NodeJS.Timeout | null
+  }
+}
+
 interface UseBranchManagerProps {
   chatId: string
   initialBranches?: Branch[]
@@ -39,6 +46,7 @@ interface UseBranchManagerReturn {
   // Messages
   addMessageToBranch: (branchId: string, message: Omit<BranchMessage, 'id' | 'timestamp'>) => void
   getMessagesForBranch: (branchId: string) => BranchMessage[]
+  setMessages: (messages: Record<string, BranchMessage[]>) => void
 
   // Utilities
   generateBranchConfig: (branchCount: number) => BranchCreationConfig
@@ -105,22 +113,46 @@ export const useBranchManager = ({
   }, [])
 
   const generateAIResponse = useCallback(async (branchId: string, userQuestion: string) => {
+    console.log(
+      '[generateAIResponse] Starting AI response generation for branch:',
+      branchId,
+      'question:',
+      userQuestion
+    )
     try {
-      // Create typing message
-      const typingMessage: BranchMessage = {
-        id: `msg_${Date.now()}_typing_${branchId}`,
+      // Create empty AI message in DB first
+      const aiResponse = await fetch(`/api/branches/${branchId}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: '',
+          role: 'assistant',
+          modelUsed: 'gpt-4o-mini',
+          isTyping: true,
+        }),
+      })
+
+      if (!aiResponse.ok) {
+        throw new Error('Failed to create AI message in database')
+      }
+
+      const savedAiMessage = await aiResponse.json()
+      const aiMessageId = savedAiMessage.id
+
+      // Add to local state as typing message
+      const aiMessage: BranchMessage = {
+        id: savedAiMessage.id,
         branchId,
         parentMessageId: null,
         content: '',
         role: 'assistant',
-        timestamp: new Date(),
+        timestamp: new Date(savedAiMessage.createdAt),
         metadata: { isTyping: true },
       }
 
-      // Add typing message
       setMessages(prev => ({
         ...prev,
-        [branchId]: [...(prev[branchId] || []), typingMessage],
+        [branchId]: [...(prev[branchId] || []), aiMessage],
       }))
 
       // Prepare messages for API call
@@ -136,47 +168,110 @@ export const useBranchManager = ({
       await ChatAPI.sendMessage(apiMessages, {
         stream: true,
         onStream: (streamContent: string) => {
+          console.log('[generateAIResponse] onStream called with:', streamContent)
           accumulatedContent += streamContent
 
-          // Update the typing message with accumulated content
+          // Update only local state during streaming (no DB updates)
           setMessages(prev => ({
             ...prev,
             [branchId]:
               prev[branchId]?.map(msg =>
-                msg.id === typingMessage.id
-                  ? { ...msg, content: accumulatedContent, metadata: { isTyping: false } }
+                msg.id === aiMessageId
+                  ? { ...msg, content: accumulatedContent, metadata: { isTyping: true } }
                   : msg
               ) || [],
           }))
+
+          // Throttle database updates during streaming (every 500ms)
+          if (!window.streamingUpdateTimeout) {
+            window.streamingUpdateTimeout = setTimeout(() => {
+              fetch(`/api/messages/${aiMessageId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  content: accumulatedContent,
+                  isTyping: true,
+                }),
+              }).catch(error => {
+                console.error('Failed to update streaming content in DB:', error)
+              })
+              window.streamingUpdateTimeout = null
+            }, 500)
+          }
         },
-        onComplete: (fullContent: string) => {
-          // Final update to ensure we have the complete message
-          setMessages(prev => ({
-            ...prev,
-            [branchId]:
-              prev[branchId]?.map(msg =>
-                msg.id === typingMessage.id
-                  ? { ...msg, content: fullContent, metadata: { isTyping: false } }
-                  : msg
-              ) || [],
-          }))
+        onComplete: async (fullContent: string) => {
+          const finalContent = fullContent || accumulatedContent
+          console.log('[generateAIResponse] onComplete called with:', {
+            fullContent,
+            accumulatedContent,
+            finalContent,
+          })
+
+          // Clear any pending streaming timeout
+          if (window.streamingUpdateTimeout) {
+            clearTimeout(window.streamingUpdateTimeout)
+            window.streamingUpdateTimeout = null
+          }
+
+          if (finalContent) {
+            try {
+              // Single final update to database
+              await fetch(`/api/messages/${aiMessageId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  content: finalContent,
+                  isTyping: false,
+                }),
+              })
+
+              // Final update to local state
+              setMessages(prev => ({
+                ...prev,
+                [branchId]:
+                  prev[branchId]?.map(msg =>
+                    msg.id === aiMessageId
+                      ? { ...msg, content: finalContent, metadata: { isTyping: false } }
+                      : msg
+                  ) || [],
+              }))
+            } catch (error) {
+              console.error('Failed to finalize AI message:', error)
+            }
+          }
         },
-        onError: (error: string) => {
+        onError: async (error: string) => {
           console.error('AI response error for branch:', branchId, error)
-          // Replace typing message with error message
-          setMessages(prev => ({
-            ...prev,
-            [branchId]:
-              prev[branchId]?.map(msg =>
-                msg.id === typingMessage.id
-                  ? {
-                      ...msg,
-                      content: `エラーが発生しました: ${error}`,
-                      metadata: { isTyping: false },
-                    }
-                  : msg
-              ) || [],
-          }))
+          const errorContent = `エラーが発生しました: ${error}`
+
+          // Clear any pending streaming timeout
+          if (window.streamingUpdateTimeout) {
+            clearTimeout(window.streamingUpdateTimeout)
+            window.streamingUpdateTimeout = null
+          }
+
+          try {
+            await fetch(`/api/messages/${aiMessageId}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                content: errorContent,
+                isTyping: false,
+              }),
+            })
+
+            setMessages(prev => ({
+              ...prev,
+              [branchId]:
+                prev[branchId]?.map(msg =>
+                  msg.id === aiMessageId
+                    ? { ...msg, content: errorContent, metadata: { isTyping: false } }
+                    : msg
+                ) || [],
+            }))
+          } catch (updateError) {
+            console.error('Failed to update error message:', updateError)
+          }
         },
       })
     } catch (error) {
@@ -187,21 +282,42 @@ export const useBranchManager = ({
   const createBranches = useCallback(
     async (config: BranchCreationConfig, parentMessageId: string) => {
       setIsCreatingBranch(true)
+      console.log('[useBranchManager] Creating branches:', config)
 
       try {
         const newBranches: Branch[] = []
 
         for (let i = 0; i < config.branches.length; i++) {
           const branchConfig = config.branches[i]
+          console.log('[useBranchManager] Creating branch:', branchConfig)
+
+          // Create branch in database
+          console.log('[useBranchManager] Current branch ID:', currentBranchId)
+          const response = await fetch(`/api/chats/${chatId}/branches`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: branchConfig.name,
+              parentBranchId: currentBranchId || null, // Use null if no current branch
+            }),
+          })
+
+          if (!response.ok) {
+            throw new Error('Failed to create branch in database')
+          }
+
+          const createdBranch = await response.json()
+          console.log('[useBranchManager] Branch created in DB:', createdBranch)
+
           const newBranch: Branch = {
-            id: `branch_${Date.now()}_${i}`,
+            id: createdBranch.id,
             chatId,
-            parentBranchId: currentBranchId,
-            name: branchConfig.name,
-            color: branchConfig.color,
+            parentBranchId: createdBranch.parentBranchId,
+            name: createdBranch.name,
+            color: branchConfig.color, // Use local color from config
             isActive: i === 0, // First branch becomes active
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            createdAt: new Date(createdBranch.createdAt),
+            updatedAt: new Date(createdBranch.updatedAt),
             metadata: config.metadata,
           }
 
@@ -209,26 +325,47 @@ export const useBranchManager = ({
 
           // If there's a question, add it as the first message and generate AI response
           if (branchConfig.question.trim()) {
-            const userMessage: BranchMessage = {
-              id: `msg_${Date.now()}_user_${i}`,
-              branchId: newBranch.id,
-              parentMessageId: parentMessageId,
-              content: branchConfig.question,
-              role: 'user',
-              timestamp: new Date(),
-              metadata: {},
+            try {
+              // Save user message to database
+              const userMessageResponse = await fetch(`/api/branches/${newBranch.id}/messages`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  content: branchConfig.question,
+                  role: 'user',
+                  isTyping: false,
+                }),
+              })
+
+              if (userMessageResponse.ok) {
+                const savedUserMessage = await userMessageResponse.json()
+
+                const userMessage: BranchMessage = {
+                  id: savedUserMessage.id,
+                  branchId: newBranch.id,
+                  parentMessageId: parentMessageId,
+                  content: savedUserMessage.content,
+                  role: 'user',
+                  timestamp: new Date(savedUserMessage.createdAt),
+                  metadata: {},
+                }
+
+                // Add user message to local state
+                setMessages(prev => ({
+                  ...prev,
+                  [newBranch.id]: [userMessage],
+                }))
+
+                // Generate AI response for this branch (fire and forget)
+                generateAIResponse(newBranch.id, branchConfig.question).catch(error => {
+                  console.error(`Failed to generate AI response for branch ${newBranch.id}:`, error)
+                })
+              } else {
+                console.error('Failed to save user message to database')
+              }
+            } catch (error) {
+              console.error('Error saving user message:', error)
             }
-
-            // Add user message immediately
-            setMessages(prev => ({
-              ...prev,
-              [newBranch.id]: [userMessage],
-            }))
-
-            // Generate AI response for this branch (fire and forget)
-            generateAIResponse(newBranch.id, branchConfig.question).catch(error => {
-              console.error(`Failed to generate AI response for branch ${newBranch.id}:`, error)
-            })
           }
         }
 
@@ -238,6 +375,10 @@ export const useBranchManager = ({
         // Switch to the first new branch
         if (newBranches.length > 0) {
           setCurrentBranchId(newBranches[0].id)
+
+          // Navigate to the specific branch page immediately
+          // The branch page will handle real-time updates
+          router.push(`/chat/${chatId}/branch/${newBranches[0].id}`)
         }
 
         // Close modal
@@ -245,9 +386,6 @@ export const useBranchManager = ({
 
         // Notify parent component
         onBranchCreated?.(newBranches)
-
-        // Navigate to branch view
-        router.push(`/chat/${chatId}/branch`)
       } catch (error) {
         console.error('Failed to create branches:', error)
         throw error
@@ -372,6 +510,7 @@ export const useBranchManager = ({
     switchBranch,
     deleteBranch,
     updateBranch,
+    setBranches,
 
     // Modal management
     openBranchCreationModal,
@@ -381,6 +520,7 @@ export const useBranchManager = ({
     // Messages
     addMessageToBranch,
     getMessagesForBranch,
+    setMessages,
 
     // Utilities
     generateBranchConfig,

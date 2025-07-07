@@ -81,6 +81,7 @@ export class ChatAPI {
                 const data = line.slice(6).trim()
 
                 if (data === '[DONE]') {
+                  console.log('[ChatAPI] Streaming completed, fullContent:', fullContent)
                   onComplete?.(fullContent)
                   return fullContent
                 }
@@ -89,6 +90,12 @@ export class ChatAPI {
                   const parsed: StreamingChatResponse = JSON.parse(data)
                   if (parsed.content) {
                     fullContent += parsed.content
+                    console.log(
+                      '[ChatAPI] Stream chunk received:',
+                      parsed.content,
+                      'fullContent so far:',
+                      fullContent
+                    )
                     onStream?.(parsed.content)
                   }
                 } catch {

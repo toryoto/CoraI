@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic'
 
 import React from 'react'
-import { useParams, useSearchParams } from 'next/navigation'
+import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { Sidebar } from '@/components/ui/sidebar'
 import { ChatInterface } from '@/components/chat/chat-interface'
 import { BranchCreationModal } from '@/components/branch/branch-creation-modal'
@@ -14,14 +14,17 @@ import { useBranchManager } from '@/hooks/useBranchManager'
 export default function ChatIdPage() {
   const params = useParams()
   const searchParams = useSearchParams()
+  const router = useRouter()
   const chatId = params.chatId as string
   const branchId = searchParams.get('branch')
+  const firstMessage = searchParams.get('firstMessage')
+  const [firstMessageProcessed, setFirstMessageProcessed] = React.useState(false)
 
   const {
     chats,
     activeChat,
+    activeBranch,
     sidebarCollapsed,
-    createNewChat,
     selectChat,
     deleteChat,
     renameChat,
@@ -47,17 +50,29 @@ export default function ChatIdPage() {
     }
   }, [chatId, activeChat, selectChat])
 
+  // Fetch and set current branch when chat is loaded
+  React.useEffect(() => {
+    if (chatId && activeBranch && branchManager.currentBranchId !== activeBranch) {
+      // Use activeBranch from useChatDB as currentBranchId
+      branchManager.switchBranch(activeBranch)
+      console.log('[ChatIdPage] Set current branch to:', activeBranch)
+    }
+  }, [chatId, activeBranch]) // Remove branchManager from dependencies
+
   // Switch to the specified branch if provided in URL
   React.useEffect(() => {
     if (branchId && branchId !== branchManager.currentBranchId) {
       branchManager.switchBranch(branchId)
     }
-  }, [branchId, branchManager.currentBranchId, branchManager.switchBranch])
+  }, [branchId]) // Only depend on branchId
 
   const { isGenerating, sendMessage, stopGeneration } = useAIChat({
     onMessageAdd: async message => {
+      console.log('[ChatIdPage] onMessageAdd called:', message)
       if (chatId) {
-        return await addMessage(chatId, message)
+        const result = await addMessage(chatId, message)
+        console.log('[ChatIdPage] addMessage result:', result)
+        return result
       }
       return null
     },
@@ -81,7 +96,7 @@ export default function ChatIdPage() {
 
   const handleViewBranches = () => {
     if (chatId) {
-      window.location.href = `/chat/${chatId}/branch`
+      router.push(`/chat/${chatId}/branch`)
     }
   }
 
@@ -97,34 +112,59 @@ export default function ChatIdPage() {
       }
     }
     return undefined
-  }, [branchManager.currentBranchId, branchManager.branches])
+  }, [branchManager.currentBranchId]) // Remove branchManager.branches to prevent infinite loop
 
   const handleSendMessage = async (content: string) => {
     sendMessage(content)
   }
 
-  const currentMessages = React.useMemo(() => {
-    // If we're in a branch, show branch messages instead of chat messages
-    if (branchManager.currentBranchId && branchManager.currentBranchId !== 'main') {
-      const branchMessages = branchManager.getMessagesForBranch(branchManager.currentBranchId)
-      return branchMessages.map(msg => ({
-        id: msg.id,
-        content: msg.content,
-        role: msg.role as 'user' | 'assistant',
-        timestamp: msg.timestamp,
-        isTyping: msg.metadata?.isTyping as boolean,
-      }))
+  // Handle first message from /chat/new
+  React.useEffect(() => {
+    // Early return if already processed
+    if (firstMessageProcessed) return
+
+    if (firstMessage && activeChat === chatId && activeBranch) {
+      console.log(
+        '[ChatIdPage] Sending first message to AI:',
+        firstMessage,
+        'activeBranch:',
+        activeBranch
+      )
+      setFirstMessageProcessed(true)
+      // Send message which will create user message and AI response
+      sendMessage(firstMessage)
+      // Remove the query parameter to prevent re-sending after a short delay
+      setTimeout(() => {
+        router.replace(`/chat/${chatId}`)
+      }, 100)
     }
-    return getCurrentMessages()
-  }, [getCurrentMessages, branchManager.currentBranchId, branchManager.getMessagesForBranch])
+  }, [firstMessage, activeChat, chatId, activeBranch, firstMessageProcessed, sendMessage, router])
+
+  const currentMessages = React.useMemo(() => {
+    // Always use getCurrentMessages from useChatDB for main chat page
+    // Branch-specific logic is only for dedicated branch pages
+    console.log(
+      '[ChatIdPage] Getting current messages, branchManager.currentBranchId:',
+      branchManager.currentBranchId
+    )
+    const messages = getCurrentMessages()
+    console.log('[ChatIdPage] Current messages:', messages)
+    return messages
+  }, [getCurrentMessages]) // Always use main chat messages
 
   return (
     <div className="flex h-screen bg-white dark:bg-gray-950">
       <Sidebar
         chats={chats}
         activeChat={activeChat}
-        onNewChat={createNewChat}
-        onSelectChat={selectChat}
+        onNewChat={() => {
+          console.log('[ChatIdPage] New chat button clicked')
+          router.push('/chat/new')
+        }}
+        onSelectChat={newChatId => {
+          selectChat(newChatId)
+          router.push(`/chat/${newChatId}`)
+        }}
         onDeleteChat={deleteChat}
         onRenameChat={renameChat}
         isCollapsed={sidebarCollapsed}

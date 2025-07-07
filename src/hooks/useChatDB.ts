@@ -65,26 +65,30 @@ export function useChatDB() {
 
   // 初回ロード時にチャット一覧を取得
   useEffect(() => {
-    fetchChats().then(chats => {
+    const loadInitialData = async () => {
+      const chats = await fetchChats()
       setLoading(false)
-      // チャットが無い場合は新規作成
-      if (chats.length === 0) {
-        createNewChat()
-      } else if (!activeChat) {
-        selectChat(chats[0].id)
+      // チャットが無い場合は何もしない（/chat/newで処理する）
+      if (chats.length > 0 && !activeChat) {
+        setActiveChat(chats[0].id)
+        // 初回ロード時はfetchChatMessagesを直接実行せず、selectChatが後で実行される
       }
-    })
-  }, [fetchChats, activeChat])
+    }
+    loadInitialData()
+  }, []) // 依存配列を空にして初回のみ実行
 
   // 特定のチャットとメッセージを取得
   const fetchChatMessages = useCallback(async (chatId: string) => {
     try {
+      console.log('[useChatDB] fetchChatMessages called for chatId:', chatId)
       const response = await fetch(`/api/chats/${chatId}`)
       const data = await response.json()
+      console.log('[useChatDB] fetchChatMessages response:', data)
 
       // 最初のブランチをアクティブに設定
       const mainBranch = data.branches[0]
       if (mainBranch) {
+        console.log('[useChatDB] Main branch found:', mainBranch)
         setActiveBranch(mainBranch.id)
 
         // メッセージをフォーマット
@@ -95,11 +99,18 @@ export function useChatDB() {
           timestamp: new Date(msg.createdAt),
           isTyping: msg.isTyping,
         }))
+        console.log('[useChatDB] Formatted messages:', formattedMessages)
 
-        setMessages(prev => ({
-          ...prev,
-          [chatId]: formattedMessages,
-        }))
+        setMessages(prev => {
+          const newMessages = {
+            ...prev,
+            [chatId]: formattedMessages,
+          }
+          console.log('[useChatDB] Setting messages state:', newMessages)
+          return newMessages
+        })
+      } else {
+        console.log('[useChatDB] No main branch found')
       }
     } catch (error) {
       console.error('Failed to fetch chat messages:', error)
@@ -124,6 +135,7 @@ export function useChatDB() {
       }
 
       const data = await response.json()
+
       const newChat: Chat = {
         id: data.id,
         title: data.title,
@@ -136,11 +148,20 @@ export function useChatDB() {
       setActiveBranch(data.branches[0].id)
       setMessages(prev => ({ ...prev, [data.id]: [] }))
 
-      return data.id
+      return { chatId: data.id, branchId: data.branches[0].id }
     } catch (error) {
       console.error('Failed to create chat:', error)
+      return null
     }
   }, [])
+
+  // activeChatが変更されたときにメッセージを読み込む
+  useEffect(() => {
+    if (activeChat) {
+      console.log('[useChatDB] activeChat changed, fetching messages for:', activeChat)
+      fetchChatMessages(activeChat)
+    }
+  }, [activeChat, fetchChatMessages]) // Always fetch when activeChat changes
 
   // チャットを選択
   const selectChat = useCallback(
@@ -201,11 +222,14 @@ export function useChatDB() {
 
   // メッセージを追加
   const addMessage = useCallback(
-    async (chatId: string, message: Message) => {
-      if (!activeBranch) return
+    async (chatId: string, message: Message, branchId?: string) => {
+      const targetBranch = branchId || activeBranch
+      if (!targetBranch) {
+        return
+      }
 
       try {
-        const response = await fetch(`/api/branches/${activeBranch}/messages`, {
+        const response = await fetch(`/api/branches/${targetBranch}/messages`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -225,10 +249,18 @@ export function useChatDB() {
           isTyping: data.isTyping,
         }
 
-        setMessages(prev => ({
-          ...prev,
-          [chatId]: [...(prev[chatId] || []), newMessage],
-        }))
+        setMessages(prev => {
+          const currentMessages = prev[chatId] || []
+          // Check for duplicates
+          const isDuplicate = currentMessages.some(msg => msg.id === newMessage.id)
+          if (isDuplicate) {
+            return prev
+          }
+          return {
+            ...prev,
+            [chatId]: [...currentMessages, newMessage],
+          }
+        })
 
         // チャットのプレビューを更新
         if (message.role === 'user') {
@@ -325,6 +357,8 @@ export function useChatDB() {
     removeMessage,
     updateChatPreview,
     setSidebarCollapsed,
+    setActiveChat,
+    setActiveBranch,
 
     // Computed
     getCurrentMessages,
