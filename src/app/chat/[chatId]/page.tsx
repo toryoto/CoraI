@@ -55,7 +55,6 @@ export default function ChatIdPage() {
     if (chatId && activeBranch && branchManager.currentBranchId !== activeBranch) {
       // Use activeBranch from useChatDB as currentBranchId
       branchManager.switchBranch(activeBranch)
-      console.log('[ChatIdPage] Set current branch to:', activeBranch)
     }
   }, [chatId, activeBranch]) // Remove branchManager from dependencies
 
@@ -68,10 +67,8 @@ export default function ChatIdPage() {
 
   const { isGenerating, sendMessage, stopGeneration } = useAIChat({
     onMessageAdd: async message => {
-      console.log('[ChatIdPage] onMessageAdd called:', message)
       if (chatId) {
         const result = await addMessage(chatId, message)
-        console.log('[ChatIdPage] addMessage result:', result)
         return result
       }
       return null
@@ -124,12 +121,6 @@ export default function ChatIdPage() {
     if (firstMessageProcessed) return
 
     if (firstMessage && activeChat === chatId && activeBranch) {
-      console.log(
-        '[ChatIdPage] Sending first message to AI:',
-        firstMessage,
-        'activeBranch:',
-        activeBranch
-      )
       setFirstMessageProcessed(true)
       // Send message which will create user message and AI response
       sendMessage(firstMessage)
@@ -143,12 +134,7 @@ export default function ChatIdPage() {
   const currentMessages = React.useMemo(() => {
     // Always use getCurrentMessages from useChatDB for main chat page
     // Branch-specific logic is only for dedicated branch pages
-    console.log(
-      '[ChatIdPage] Getting current messages, branchManager.currentBranchId:',
-      branchManager.currentBranchId
-    )
     const messages = getCurrentMessages()
-    console.log('[ChatIdPage] Current messages:', messages)
     return messages
   }, [getCurrentMessages]) // Always use main chat messages
 
@@ -158,7 +144,6 @@ export default function ChatIdPage() {
         chats={chats}
         activeChat={activeChat}
         onNewChat={() => {
-          console.log('[ChatIdPage] New chat button clicked')
           router.push('/chat/new')
         }}
         onSelectChat={newChatId => {

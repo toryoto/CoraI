@@ -12,7 +12,16 @@ export async function GET(request: NextRequest, { params }: { params: { branchId
       orderBy: { createdAt: 'asc' },
     })
 
-    return NextResponse.json(messages)
+    // isTypingをmetadataに含めて返す
+    const messagesWithMetadata = messages.map(msg => ({
+      ...msg,
+      metadata: {
+        ...(typeof msg.metadata === 'object' && msg.metadata !== null ? msg.metadata : {}),
+        isTyping: msg.isTyping,
+      },
+    }))
+
+    return NextResponse.json(messagesWithMetadata)
   } catch (error) {
     console.error('Failed to fetch messages:', error)
     return NextResponse.json({ error: 'Failed to fetch messages' }, { status: 500 })

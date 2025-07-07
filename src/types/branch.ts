@@ -1,3 +1,12 @@
+type Priority = 'high' | 'medium' | 'low'
+type MessageRole = 'user' | 'assistant' | 'system'
+
+interface BaseMetadata {
+  purpose?: string
+  tags?: string[]
+  priority?: Priority
+}
+
 export interface Branch {
   id: string
   chatId: string
@@ -7,11 +16,7 @@ export interface Branch {
   isActive: boolean
   createdAt: Date
   updatedAt: Date
-  metadata?: {
-    purpose?: string
-    tags?: string[]
-    priority?: 'high' | 'medium' | 'low'
-  }
+  metadata?: BaseMetadata
 }
 
 export interface BranchMessage {
@@ -19,35 +24,35 @@ export interface BranchMessage {
   branchId: string
   parentMessageId: string | null
   content: string
-  role: 'user' | 'assistant' | 'system'
+  role: MessageRole
   timestamp: Date
   metadata?: Record<string, unknown>
 }
 
+interface BranchConfig {
+  name: string
+  color: string
+  question: string
+}
+
 export interface BranchCreationConfig {
   branchCount: number
-  branches: Array<{
-    name: string
-    color: string
-    question: string
-  }>
-  metadata?: {
-    purpose?: string
-    tags?: string[]
-    priority?: 'high' | 'medium' | 'low'
-  }
+  branches: BranchConfig[]
+  metadata?: BaseMetadata
+}
+
+interface BranchCreationModal {
+  isOpen: boolean
+  parentMessageId: string | null
+  config: BranchCreationConfig
 }
 
 export interface BranchState {
   branches: Branch[]
   currentBranchId: string | null
-  messages: Record<string, BranchMessage[]> // branchId -> messages
+  messages: Record<string, BranchMessage[]>
   isCreatingBranch: boolean
-  branchCreationModal: {
-    isOpen: boolean
-    parentMessageId: string | null
-    config: BranchCreationConfig
-  }
+  branchCreationModal: BranchCreationModal
 }
 
 export const DEFAULT_BRANCH_COLORS = [

@@ -81,7 +81,6 @@ export class ChatAPI {
                 const data = line.slice(6).trim()
 
                 if (data === '[DONE]') {
-                  console.log('[ChatAPI] Streaming completed, fullContent:', fullContent)
                   onComplete?.(fullContent)
                   return fullContent
                 }
@@ -90,17 +89,10 @@ export class ChatAPI {
                   const parsed: StreamingChatResponse = JSON.parse(data)
                   if (parsed.content) {
                     fullContent += parsed.content
-                    console.log(
-                      '[ChatAPI] Stream chunk received:',
-                      parsed.content,
-                      'fullContent so far:',
-                      fullContent
-                    )
                     onStream?.(parsed.content)
                   }
                 } catch {
                   // Skip invalid JSON lines
-                  console.warn('Failed to parse streaming data:', data)
                 }
               }
             }
@@ -121,26 +113,6 @@ export class ChatAPI {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
       onError?.(errorMessage)
       throw error
-    }
-  }
-
-  static async testConnection(): Promise<boolean> {
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messages: [{ role: 'user', content: 'Hello' }],
-          stream: false,
-          max_tokens: 10,
-        }),
-      })
-
-      return response.ok
-    } catch {
-      return false
     }
   }
 }

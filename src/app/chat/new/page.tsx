@@ -14,7 +14,6 @@ export default function NewChatPage() {
   const router = useRouter()
   const [isCreatingChat, setIsCreatingChat] = React.useState(false)
   const [tempMessages, setTempMessages] = React.useState<Message[]>([])
-  const [localActiveChat] = React.useState<string | undefined>(undefined)
 
   const {
     chats,
@@ -23,7 +22,6 @@ export default function NewChatPage() {
     selectChat,
     deleteChat,
     renameChat,
-    addMessage,
     setSidebarCollapsed,
     generateId,
   } = useChatDB()
@@ -31,29 +29,19 @@ export default function NewChatPage() {
   const { isGenerating, sendMessage, stopGeneration } = useAIChat({
     onMessageAdd: async message => {
       // Always store in temp messages for new chat
-      if (!localActiveChat && !isCreatingChat) {
+      if (!isCreatingChat) {
         setTempMessages(prev => [...prev, message])
         return message.id
-      }
-      // Otherwise add to the local active chat
-      if (localActiveChat) {
-        return await addMessage(localActiveChat, message)
       }
       return null
     },
     onMessageUpdate: (messageId, updates) => {
-      if (!localActiveChat) {
-        setTempMessages(prev =>
-          prev.map(msg => (msg.id === messageId ? { ...msg, ...updates } : msg))
-        )
-      } else {
-        // Don't update in new chat page after navigation
-      }
+      setTempMessages(prev =>
+        prev.map(msg => (msg.id === messageId ? { ...msg, ...updates } : msg))
+      )
     },
     onMessageRemove: messageId => {
-      if (!localActiveChat) {
-        setTempMessages(prev => prev.filter(msg => msg.id !== messageId))
-      }
+      setTempMessages(prev => prev.filter(msg => msg.id !== messageId))
     },
     getCurrentMessages: () => {
       // Always return temp messages on new chat page
@@ -64,7 +52,7 @@ export default function NewChatPage() {
 
   const handleSendMessage = async (content: string) => {
     // Always create a new chat on first message
-    if (!localActiveChat && !isCreatingChat) {
+    if (!isCreatingChat) {
       setIsCreatingChat(true)
 
       // Create a new chat
@@ -78,9 +66,6 @@ export default function NewChatPage() {
       }
 
       setIsCreatingChat(false)
-    } else if (localActiveChat) {
-      // This shouldn't happen on new chat page, but handle it
-      await sendMessage(content)
     }
   }
 

@@ -8,7 +8,7 @@ interface BranchButtonProps {
   messageId: string
   onBranchClick: (messageId: string) => void
   className?: string
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'default' | 'sm' | 'lg'
   variant?: 'default' | 'ghost' | 'outline'
 }
 

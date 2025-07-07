@@ -140,7 +140,6 @@ export default function ChatPage() {
         chats={chats}
         activeChat={activeChat}
         onNewChat={() => {
-          console.log('[ChatPage] New chat button clicked')
           router.push('/chat/new')
         }}
         onSelectChat={chatId => {

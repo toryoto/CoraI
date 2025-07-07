@@ -80,15 +80,12 @@ export function useChatDB() {
   // 特定のチャットとメッセージを取得
   const fetchChatMessages = useCallback(async (chatId: string) => {
     try {
-      console.log('[useChatDB] fetchChatMessages called for chatId:', chatId)
       const response = await fetch(`/api/chats/${chatId}`)
       const data = await response.json()
-      console.log('[useChatDB] fetchChatMessages response:', data)
 
       // 最初のブランチをアクティブに設定
       const mainBranch = data.branches[0]
       if (mainBranch) {
-        console.log('[useChatDB] Main branch found:', mainBranch)
         setActiveBranch(mainBranch.id)
 
         // メッセージをフォーマット
@@ -99,14 +96,12 @@ export function useChatDB() {
           timestamp: new Date(msg.createdAt),
           isTyping: msg.isTyping,
         }))
-        console.log('[useChatDB] Formatted messages:', formattedMessages)
 
         setMessages(prev => {
           const newMessages = {
             ...prev,
             [chatId]: formattedMessages,
           }
-          console.log('[useChatDB] Setting messages state:', newMessages)
           return newMessages
         })
       } else {
@@ -158,7 +153,6 @@ export function useChatDB() {
   // activeChatが変更されたときにメッセージを読み込む
   useEffect(() => {
     if (activeChat) {
-      console.log('[useChatDB] activeChat changed, fetching messages for:', activeChat)
       fetchChatMessages(activeChat)
     }
   }, [activeChat, fetchChatMessages]) // Always fetch when activeChat changes

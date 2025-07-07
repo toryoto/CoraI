@@ -1,7 +1,5 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-
 import React from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Sidebar } from '@/components/ui/sidebar'
@@ -35,11 +33,9 @@ export default function BranchPage() {
   React.useEffect(() => {
     const fetchBranches = async () => {
       try {
-        console.log('[BranchPage] Fetching branches for chat:', chatId)
         const response = await fetch(`/api/chats/${chatId}/branches`)
         if (response.ok) {
           const branches = await response.json()
-          console.log('[BranchPage] Fetched branches:', branches)
           // Convert API branches to branch manager format
           const formattedBranches = branches.map((branch: any) => ({
             id: branch.id,
@@ -52,7 +48,7 @@ export default function BranchPage() {
             updatedAt: new Date(branch.updatedAt),
             metadata: branch.metadata || {},
           }))
-          branchManager.setBranches(formattedBranches)
+          branchManager.setBranches?.(formattedBranches)
 
           // Also set messages for each branch
           const messagesData: Record<string, any[]> = {}
@@ -70,7 +66,7 @@ export default function BranchPage() {
           branchManager.setMessages(messagesData)
         }
       } catch (error) {
-        console.error('[BranchPage] Failed to fetch branches:', error)
+        console.error('Failed to fetch branches:', error)
       }
     }
 
@@ -92,7 +88,6 @@ export default function BranchPage() {
         chats={chats}
         activeChat={activeChat}
         onNewChat={() => {
-          console.log('[BranchPage] New chat button clicked')
           router.push('/chat/new')
         }}
         onSelectChat={newChatId => {

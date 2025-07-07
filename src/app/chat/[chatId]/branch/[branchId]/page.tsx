@@ -50,11 +50,9 @@ export default function BranchChatPage() {
   React.useEffect(() => {
     const fetchBranchData = async () => {
       try {
-        console.log('[BranchChatPage] Fetching branch data for:', branchId)
         const response = await fetch(`/api/branches/${branchId}/messages`)
         if (response.ok) {
           const messages = await response.json()
-          console.log('[BranchChatPage] Fetched branch messages:', messages)
 
           // Set messages for this branch in the branch manager
           const formattedMessages = messages.map(
@@ -79,13 +77,13 @@ export default function BranchChatPage() {
 
           // Check if we have any typing messages (AI still generating)
           const hasTypingMessages = formattedMessages.some(
-            msg =>
+            (msg: { role: string; metadata?: { isTyping?: boolean }; content: string }) =>
               msg.role === 'assistant' && (msg.metadata?.isTyping === true || msg.content === '')
           )
 
           // Also check if we have very recent messages (created in last 2 minutes)
           const hasRecentMessages = formattedMessages.some(
-            msg => new Date().getTime() - new Date(msg.timestamp).getTime() < 2 * 60 * 1000
+            (msg: { timestamp: Date | string }) => new Date().getTime() - new Date(msg.timestamp).getTime() < 2 * 60 * 1000
           )
 
           if ((hasTypingMessages || hasRecentMessages) && !isPollingForAI) {
@@ -106,10 +104,9 @@ export default function BranchChatPage() {
             [branchId]: formattedMessages,
           })
 
-          console.log('[BranchChatPage] Messages set for branch:', branchId, formattedMessages)
         }
       } catch (error) {
-        console.error('[BranchChatPage] Failed to fetch branch messages:', error)
+        throw error
       }
     }
 
@@ -149,7 +146,7 @@ export default function BranchChatPage() {
 
           // Check if AI is still typing
           const hasTypingMessages = formattedMessages.some(
-            msg =>
+            (msg: { role: string; metadata?: { isTyping?: boolean }; content: string }) =>
               msg.role === 'assistant' && (msg.metadata?.isTyping === true || msg.content === '')
           )
 
@@ -190,7 +187,6 @@ export default function BranchChatPage() {
 
   const { isGenerating, sendMessage, stopGeneration } = useAIChat({
     onMessageAdd: async message => {
-      console.log('[BranchChatPage] onMessageAdd called:', message, 'branchId:', branchId)
       if (branchId) {
         try {
           // ブランチに直接メッセージを保存
@@ -210,7 +206,6 @@ export default function BranchChatPage() {
           }
 
           const savedMessage = await response.json()
-          console.log('[BranchChatPage] Message saved to DB:', savedMessage)
 
           // UIの即座更新のためブランチマネージャーにも追加
           const newMessage = {
@@ -232,7 +227,7 @@ export default function BranchChatPage() {
 
           return savedMessage.id
         } catch (error) {
-          console.error('[BranchChatPage] Failed to save message:', error)
+          console.error(error)
           return null
         }
       }
@@ -348,11 +343,6 @@ export default function BranchChatPage() {
     // Show branch messages
     if (branchManager.currentBranchId) {
       const branchMessages = branchManager.getMessagesForBranch(branchManager.currentBranchId)
-      console.log(
-        '[BranchChatPage] Current messages for branch:',
-        branchManager.currentBranchId,
-        branchMessages
-      )
       return branchMessages.map(msg => ({
         id: msg.id,
         content: msg.content,
@@ -370,7 +360,6 @@ export default function BranchChatPage() {
         chats={chats}
         activeChat={activeChat}
         onNewChat={() => {
-          console.log('[BranchChatPage] New chat button clicked')
           router.push('/chat/new')
         }}
         onSelectChat={newChatId => {

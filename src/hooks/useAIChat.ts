@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react'
 import { ChatAPI, type ChatMessage } from '@/lib/chat-client'
 import { type Message } from '@/components/chat/message'
 
-export interface UseAIChatOptions {
+interface MessageCallbacks {
   onMessageAdd: (message: Message) => Promise<string | null>
   onMessageUpdate: (messageId: string, updates: Partial<Message>) => void
   onMessageRemove: (messageId: string) => void
@@ -10,41 +10,29 @@ export interface UseAIChatOptions {
   generateId: () => string
 }
 
-export function useAIChat({
-  onMessageAdd,
-  onMessageUpdate,
-  onMessageRemove,
-  getCurrentMessages,
-  generateId,
-}: UseAIChatOptions) {
+export function useAIChat(callbacks: MessageCallbacks) {
+  const { onMessageAdd, onMessageUpdate, onMessageRemove, getCurrentMessages, generateId } =
+    callbacks
   const [isGenerating, setIsGenerating] = useState(false)
   const [abortController, setAbortController] = useState<AbortController | null>(null)
 
+  const createMessage = (content: string, role: Message['role'], isTyping = false): Message => ({
+    id: generateId(),
+    content,
+    role,
+    timestamp: new Date(),
+    ...(isTyping && { isTyping }),
+  })
+
   const sendMessage = useCallback(
     async (content: string) => {
-      const userMessage: Message = {
-        id: generateId(),
-        content,
-        role: 'user',
-        timestamp: new Date(),
-      }
-
       // Add user message
-      await onMessageAdd(userMessage)
+      await onMessageAdd(createMessage(content, 'user'))
 
       // Start generating AI response
       setIsGenerating(true)
 
-      // Create temporary typing message
-      const typingMessage: Message = {
-        id: generateId(),
-        content: '',
-        role: 'assistant',
-        timestamp: new Date(),
-        isTyping: true,
-      }
-
-      const typingMessageId = await onMessageAdd(typingMessage)
+      const typingMessageId = await onMessageAdd(createMessage('', 'assistant', true))
       if (!typingMessageId) {
         setIsGenerating(false)
         return
@@ -56,19 +44,11 @@ export function useAIChat({
         setAbortController(controller)
 
         // Convert messages to API format
-        const currentMessages = getCurrentMessages()
         const apiMessages: ChatMessage[] = [
-          ...currentMessages
-            .filter(msg => !msg.isTyping) // Exclude typing messages
-            .map(msg => ({
-              role: msg.role,
-              content: msg.content,
-            })),
-          // Add the new user message since state might not be updated yet
-          {
-            role: 'user' as const,
-            content,
-          },
+          ...getCurrentMessages()
+            .filter(msg => !msg.isTyping)
+            .map(({ role, content }) => ({ role, content })),
+          { role: 'user', content },
         ]
 
         let accumulatedContent = ''
@@ -84,35 +64,27 @@ export function useAIChat({
               content: accumulatedContent,
               isTyping: false,
               isStreaming: true, // カスタムフラグでストリーミング中であることを示す
-            })
+            } as any)
           },
           onComplete: (fullContent: string) => {
             // Use accumulated content if fullContent is empty
             const finalContent = fullContent || accumulatedContent
-            console.log('[useAIChat] onComplete called with:', {
-              fullContent,
-              accumulatedContent,
-              finalContent,
-            })
 
             // Final update to ensure we have the complete message (not streaming)
             onMessageUpdate(typingMessageId, {
               content: finalContent,
               isTyping: false,
               isStreaming: false, // ストリーミング完了
-            })
+            } as any)
             setIsGenerating(false)
             setAbortController(null)
           },
           onError: (error: string) => {
             console.error('Chat API error:', error)
 
-            // Don't show error if it was aborted
             if (controller.signal.aborted) {
-              // Remove typing message
               onMessageRemove(typingMessageId)
             } else {
-              // Replace typing message with error message
               onMessageUpdate(typingMessageId, {
                 content: `エラーが発生しました: ${error}`,
                 isTyping: false,
@@ -124,19 +96,13 @@ export function useAIChat({
         })
       } catch (error) {
         console.error('Failed to send message:', error)
-
-        // Remove typing message and show error
         onMessageRemove(typingMessageId)
-
-        const errorMessage: Message = {
-          id: generateId(),
-          content:
+        await onMessageAdd(
+          createMessage(
             '申し訳ございませんが、メッセージの送信に失敗しました。しばらく待ってから再度お試しください。',
-          role: 'assistant',
-          timestamp: new Date(),
-        }
-
-        onMessageAdd(errorMessage)
+            'assistant'
+          )
+        )
         setIsGenerating(false)
       }
     },
