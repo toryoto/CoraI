@@ -9,6 +9,8 @@ import {
   DEFAULT_BRANCH_COLORS,
 } from '@/types/branch'
 import { ChatAPI, type ChatMessage } from '@/lib/chat-client'
+import { apiRequest } from '@/lib/utils'
+import { useBranchCreationModal } from '@/hooks/useBranchCreationModal'
 
 // Extend Window interface for streaming timeout
 declare global {
@@ -60,13 +62,15 @@ export const useBranchManager = ({
   const [currentBranchId, setCurrentBranchId] = useState<string | null>(null)
   const [messages, setMessages] = useState<Record<string, BranchMessage[]>>(initialMessages)
   const [isCreatingBranch, setIsCreatingBranch] = useState(false)
-  const [branchCreationModal, setBranchCreationModal] = useState<
-    BranchState['branchCreationModal']
-  >({
-    isOpen: false,
-    parentMessageId: null,
-    config: DEFAULT_BRANCH_CONFIG,
-  })
+
+  // useBranchCreationModalでモーダル管理
+  const {
+    branchCreationModal,
+    openBranchCreationModal,
+    closeBranchCreationModal,
+    updateBranchCreationConfig,
+    setBranchCreationModal,
+  } = useBranchCreationModal()
 
   // Initialize main branch if no branches exist
   useEffect(() => {
@@ -90,16 +94,6 @@ export const useBranchManager = ({
       setCurrentBranchId('main')
     }
   }, [chatId, branches.length])
-
-  // Helper functions
-  const apiRequest = async (url: string, options: RequestInit = {}) => {
-    const response = await fetch(url, {
-      headers: { 'Content-Type': 'application/json' },
-      ...options,
-    })
-    if (!response.ok) throw new Error(`API request failed: ${response.statusText}`)
-    return response.json()
-  }
 
   const createBranchMessage = (
     data: Partial<BranchMessage>,
@@ -269,14 +263,6 @@ export const useBranchManager = ({
     }
   }, [])
 
-  const closeBranchCreationModal = useCallback(() => {
-    setBranchCreationModal({
-      isOpen: false,
-      parentMessageId: null,
-      config: DEFAULT_BRANCH_CONFIG,
-    })
-  }, [])
-
   const createBranches = useCallback(
     async (config: BranchCreationConfig, parentMessageId: string) => {
       setIsCreatingBranch(true)
@@ -427,21 +413,6 @@ export const useBranchManager = ({
       console.error('Failed to update branch:', error)
       throw error
     }
-  }, [])
-
-  const openBranchCreationModal = useCallback((parentMessageId: string) => {
-    setBranchCreationModal({
-      isOpen: true,
-      parentMessageId,
-      config: DEFAULT_BRANCH_CONFIG,
-    })
-  }, [])
-
-  const updateBranchCreationConfig = useCallback((configUpdate: Partial<BranchCreationConfig>) => {
-    setBranchCreationModal(prev => ({
-      ...prev,
-      config: { ...prev.config, ...configUpdate },
-    }))
   }, [])
 
   const addMessageToBranch = useCallback(

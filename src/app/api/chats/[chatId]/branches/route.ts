@@ -40,7 +40,7 @@ export async function POST(request: NextRequest, { params }: { params: { chatId:
       data: {
         chatId,
         name,
-        parentBranchId,
+        parentBranchId: parentBranchId || null,
       },
     })
 
