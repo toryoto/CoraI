@@ -3,16 +3,17 @@
 export const dynamic = 'force-dynamic'
 
 import React from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Sidebar } from '@/components/ui/sidebar'
 import { ChatInterface } from '@/components/chat/chat-interface'
-import { useChatDB } from '@/hooks/useChatDB'
+import { useChatList } from '@/hooks/useChatList'
 import { useAIChatForNewChat } from '@/hooks/useAIChat'
 import { useSidebar } from '@/hooks/useSidebar'
 
 export default function NewChatPage() {
   const router = useRouter()
-  const [isCreatingChat, setIsCreatingChat] = React.useState(false)
+  const [isCreatingChat, setIsCreatingChat] = useState(false)
   const { tempMessages, isGenerating, stopGeneration } = useAIChatForNewChat()
 
   const {
@@ -21,9 +22,14 @@ export default function NewChatPage() {
     selectChat,
     deleteChat,
     renameChat,
-  } = useChatDB()
+    fetchChats,
+  } = useChatList()
 
   const { sidebarCollapsed, setSidebarCollapsed } = useSidebar()
+
+  useEffect(() => {
+    fetchChats()
+  }, [fetchChats])
 
   const handleSendMessage = async (content: string) => {
     if (!isCreatingChat) {
@@ -33,10 +39,8 @@ export default function NewChatPage() {
       const newChatData = await createNewChat()
 
       if (newChatData) {
-        const { chatId } = newChatData
-
-        //window.location.href = `/chat/${chatId}?firstMessage=${encodeURIComponent(content)}`
-        router.push(`/chat/${chatId}?firstMessage=${encodeURIComponent(content)}`)
+        const { chatId, mainBranchId } = newChatData
+        router.push(`/chat/${chatId}?mainBranchId=${mainBranchId}&firstMessage=${encodeURIComponent(content)}`)
       }
 
       setIsCreatingChat(false)

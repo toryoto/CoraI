@@ -18,6 +18,7 @@ export interface Message {
   timestamp: Date
   isTyping?: boolean
   isStreaming?: boolean
+  branchId?: string
 }
 
 export interface MessageProps {

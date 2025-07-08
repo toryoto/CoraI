@@ -3,11 +3,12 @@
 export const dynamic = 'force-dynamic'
 
 import React from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Sidebar } from '@/components/ui/sidebar'
 import { ChatInterface } from '@/components/chat/chat-interface'
 import { BranchCreationModal } from '@/components/branch/branch-creation-modal'
-import { useChatDB } from '@/hooks/useChatDB'
+import { useChatList } from '@/hooks/useChatList'
 import { useAIChatForExistingChat } from '@/hooks/useAIChat'
 import { useBranchManager } from '@/hooks/useBranchManager'
 import { type Message } from '@/components/chat/message'
@@ -25,9 +26,8 @@ export default function BranchChatPage() {
     selectChat,
     deleteChat,
     renameChat,
-    getCurrentMessages,
-    generateId,
-  } = useChatDB()
+    fetchChats
+  } = useChatList()
 
   const { sidebarCollapsed, setSidebarCollapsed } = useSidebar()
 
@@ -38,18 +38,22 @@ export default function BranchChatPage() {
     initialMessages: {},
   })
 
+  useEffect(() => {
+    fetchChats()
+  }, [chatId, fetchChats])
+
   // Select the chat if not already selected
-  React.useEffect(() => {
+  useEffect(() => {
     if (chatId && activeChat !== chatId) {
       selectChat(chatId)
     }
   }, [chatId, activeChat, selectChat])
 
   // State for tracking if we're actively polling for AI responses
-  const [isPollingForAI, setIsPollingForAI] = React.useState(true) // Start with polling enabled for new branches
+  const [isPollingForAI, setIsPollingForAI] = useState(true) // Start with polling enabled for new branches
 
   // Fetch branch data and messages when page loads
-  React.useEffect(() => {
+  useEffect(() => {
     const fetchBranchData = async () => {
       try {
         const response = await fetch(`/api/branches/${branchId}/messages`)
@@ -118,7 +122,7 @@ export default function BranchChatPage() {
   }, [branchId, isPollingForAI]) // Remove branchManager to prevent infinite loop
 
   // Set up polling for AI responses when needed
-  React.useEffect(() => {
+  useEffect(() => {
     if (!isPollingForAI || !branchId) return
 
     const pollForAIUpdates = async () => {
@@ -181,14 +185,14 @@ export default function BranchChatPage() {
   }, [isPollingForAI, branchId, branchManager])
 
   // Switch to the specified branch
-  React.useEffect(() => {
+  useEffect(() => {
     if (branchId && branchId !== branchManager.currentBranchId) {
       branchManager.switchBranch(branchId)
     }
   }, [branchId]) // Remove branchManager from dependencies to prevent infinite loop
 
   const chatDB = {
-    addMessage: (chatId: string, message: Message) => {
+    addMessage: async (chatId: string, message: Message) => {
       // ブランチIDを使ってAPI保存
       return fetch(`/api/branches/${branchId}/messages`, {
         method: 'POST',
@@ -289,9 +293,9 @@ export default function BranchChatPage() {
           isTyping: msg.metadata?.isTyping as boolean,
         }))
       }
-      return getCurrentMessages()
+      return []
     },
-    generateId,
+    generateId: () => crypto.randomUUID(),
   }
   const { isGenerating, sendMessage, stopGeneration } = useAIChatForExistingChat(
     chatId || '',
@@ -308,7 +312,7 @@ export default function BranchChatPage() {
     }
   }
 
-  const currentBranch = React.useMemo(() => {
+  const currentBranch = useMemo(() => {
     if (branchManager.currentBranchId) {
       const branch = branchManager.branches.find(b => b.id === branchManager.currentBranchId)
       if (branch) {
@@ -326,7 +330,7 @@ export default function BranchChatPage() {
     sendMessage(content)
   }
 
-  const currentMessages = React.useMemo(() => {
+  const currentMessages = useMemo(() => {
     // Show branch messages
     if (branchManager.currentBranchId) {
       const branchMessages = branchManager.getMessagesForBranch(branchManager.currentBranchId)

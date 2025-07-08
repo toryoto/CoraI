@@ -1,10 +1,11 @@
 'use client'
 
 import React from 'react'
+import { useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Sidebar } from '@/components/ui/sidebar'
 import { BranchTreeView } from '@/components/branch/branch-tree-view'
-import { useChatDB } from '@/hooks/useChatDB'
+import { useChatList } from '@/hooks/useChatList'
 import { useBranchManager } from '@/hooks/useBranchManager'
 import { useSidebar } from '@/hooks/useSidebar'
 
@@ -19,7 +20,8 @@ export default function BranchPage() {
     selectChat,
     deleteChat,
     renameChat,
-  } = useChatDB()
+    fetchChats,
+  } = useChatList()
 
   const { sidebarCollapsed, setSidebarCollapsed } = useSidebar()
 
@@ -30,8 +32,12 @@ export default function BranchPage() {
     initialMessages: {},
   })
 
+  useEffect(() => {
+    fetchChats()
+  }, [chatId, fetchChats])
+
   // Fetch branches from API
-  React.useEffect(() => {
+  useEffect(() => {
     const fetchBranches = async () => {
       try {
         const response = await fetch(`/api/chats/${chatId}/branches`)
@@ -77,7 +83,7 @@ export default function BranchPage() {
   }, [chatId]) // Remove branchManager from dependencies
 
   // Select the chat if not already selected
-  React.useEffect(() => {
+  useEffect(() => {
     if (chatId && activeChat !== chatId) {
       selectChat(chatId)
     }
