@@ -8,8 +8,9 @@ import { Sidebar } from '@/components/ui/sidebar'
 import { ChatInterface } from '@/components/chat/chat-interface'
 import { BranchCreationModal } from '@/components/branch/branch-creation-modal'
 import { useChatDB } from '@/hooks/useChatDB'
-import { useAIChat } from '@/hooks/useAIChat'
+import { useAIChatForExistingChat } from '@/hooks/useAIChat'
 import { useBranchManager } from '@/hooks/useBranchManager'
+import { type Message } from '@/components/chat/message'
 
 export default function BranchChatPage() {
   const params = useParams()
@@ -185,29 +186,23 @@ export default function BranchChatPage() {
     }
   }, [branchId]) // Remove branchManager from dependencies to prevent infinite loop
 
-  const { isGenerating, sendMessage, stopGeneration } = useAIChat({
-    onMessageAdd: async message => {
-      if (branchId) {
-        try {
-          // ブランチに直接メッセージを保存
-          const response = await fetch(`/api/branches/${branchId}/messages`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              content: message.content,
-              role: message.role,
-              modelUsed: message.role === 'assistant' ? 'gpt-4o-mini' : undefined,
-              isTyping: message.isTyping || false,
-            }),
-          })
-
-          if (!response.ok) {
-            throw new Error('Failed to save message to branch')
-          }
-
+  const chatDB = {
+    addMessage: (chatId: string, message: Message) => {
+      // ブランチIDを使ってAPI保存
+      return fetch(`/api/branches/${branchId}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: message.content,
+          role: message.role,
+          modelUsed: message.role === 'assistant' ? 'gpt-4o-mini' : undefined,
+          isTyping: message.isTyping || false,
+        }),
+      })
+        .then(async response => {
+          if (!response.ok) throw new Error('Failed to save message to branch')
           const savedMessage = await response.json()
-
-          // UIの即座更新のためブランチマネージャーにも追加
+          // UI即時更新
           const newMessage = {
             id: savedMessage.id,
             branchId,
@@ -217,71 +212,59 @@ export default function BranchChatPage() {
             timestamp: new Date(savedMessage.createdAt),
             metadata: savedMessage.isTyping ? { isTyping: savedMessage.isTyping } : {},
           }
-
-          // 既存のメッセージリストに追加
           const currentBranchMessages = branchManager.getMessagesForBranch(branchId)
           branchManager.setMessages({
             ...branchManager.messages,
             [branchId]: [...currentBranchMessages, newMessage],
           })
-
           return savedMessage.id
-        } catch (error) {
+        })
+        .catch(error => {
           console.error(error)
           return null
-        }
-      }
-      return null
-    },
-    onMessageUpdate: async (messageId, updates) => {
-      if (branchId) {
-        // Always update local state for real-time UI updates
-        const currentMessages = branchManager.getMessagesForBranch(branchId)
-        const updatedMessages = currentMessages.map(msg =>
-          msg.id === messageId
-            ? {
-                ...msg,
-                content: updates.content || msg.content,
-                metadata: {
-                  ...msg.metadata,
-                  isTyping:
-                    updates.isTyping !== undefined ? updates.isTyping : msg.metadata?.isTyping,
-                },
-              }
-            : msg
-        )
-        branchManager.setMessages({
-          ...branchManager.messages,
-          [branchId]: updatedMessages,
         })
-
-        // Only update DB when streaming is complete
-        const isStreaming = (updates as { isStreaming?: boolean }).isStreaming === true
-        if (!isStreaming && updates.content) {
-          try {
-            await fetch(`/api/messages/${messageId}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                content: updates.content,
-                isTyping: updates.isTyping || false,
-              }),
-            })
-          } catch (error) {
-            console.error('[BranchChatPage] Failed to update message in DB:', error)
-          }
-        }
+    },
+    updateMessage: (chatId: string, messageId: string, updates: Partial<Message>) => {
+      // ローカルUI更新
+      const currentMessages = branchManager.getMessagesForBranch(branchId)
+      const updatedMessages = currentMessages.map(msg =>
+        msg.id === messageId
+          ? {
+              ...msg,
+              content: updates.content || msg.content,
+              metadata: {
+                ...msg.metadata,
+                isTyping:
+                  updates.isTyping !== undefined ? updates.isTyping : msg.metadata?.isTyping,
+              },
+            }
+          : msg
+      )
+      branchManager.setMessages({
+        ...branchManager.messages,
+        [branchId]: updatedMessages,
+      })
+      // DB更新（ストリーミング完了時のみ）
+      const isStreaming = (updates as { isStreaming?: boolean }).isStreaming === true
+      if (!isStreaming && updates.content) {
+        fetch(`/api/messages/${messageId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: updates.content,
+            isTyping: updates.isTyping || false,
+          }),
+        }).catch(error => {
+          console.error('[BranchChatPage] Failed to update message in DB:', error)
+        })
       }
     },
-    onMessageRemove: async messageId => {
-      if (branchId) {
-        try {
-          const response = await fetch(`/api/messages/${messageId}`, {
-            method: 'DELETE',
-          })
-
+    removeMessage: (chatId: string, messageId: string) => {
+      fetch(`/api/messages/${messageId}`, {
+        method: 'DELETE',
+      })
+        .then(response => {
           if (response.ok) {
-            // ブランチマネージャーからもメッセージを削除
             const currentMessages = branchManager.getMessagesForBranch(branchId)
             const filteredMessages = currentMessages.filter(msg => msg.id !== messageId)
             branchManager.setMessages({
@@ -289,13 +272,12 @@ export default function BranchChatPage() {
               [branchId]: filteredMessages,
             })
           }
-        } catch (error) {
+        })
+        .catch(error => {
           console.error('[BranchChatPage] Failed to remove message:', error)
-        }
-      }
+        })
     },
     getCurrentMessages: () => {
-      // Return messages for the current branch
       if (branchManager.currentBranchId) {
         const branchMessages = branchManager.getMessagesForBranch(branchManager.currentBranchId)
         return branchMessages.map(msg => ({
@@ -309,7 +291,11 @@ export default function BranchChatPage() {
       return getCurrentMessages()
     },
     generateId,
-  })
+  }
+  const { isGenerating, sendMessage, stopGeneration } = useAIChatForExistingChat(
+    chatId || '',
+    chatDB
+  )
 
   const handleBranch = (messageId: string) => {
     branchManager.openBranchCreationModal(messageId)

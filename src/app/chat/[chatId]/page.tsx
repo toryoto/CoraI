@@ -8,7 +8,7 @@ import { Sidebar } from '@/components/ui/sidebar'
 import { ChatInterface } from '@/components/chat/chat-interface'
 import { BranchCreationModal } from '@/components/branch/branch-creation-modal'
 import { useChatDB } from '@/hooks/useChatDB'
-import { useAIChat } from '@/hooks/useAIChat'
+import { useAIChatForExistingChat } from '@/hooks/useAIChat'
 import { useBranchManager } from '@/hooks/useBranchManager'
 
 export default function ChatIdPage() {
@@ -65,27 +65,17 @@ export default function ChatIdPage() {
     }
   }, [branchId]) // Only depend on branchId
 
-  const { isGenerating, sendMessage, stopGeneration } = useAIChat({
-    onMessageAdd: async message => {
-      if (chatId) {
-        const result = await addMessage(chatId, message)
-        return result
-      }
-      return null
-    },
-    onMessageUpdate: (messageId, updates) => {
-      if (chatId) {
-        updateMessage(chatId, messageId, updates)
-      }
-    },
-    onMessageRemove: messageId => {
-      if (chatId) {
-        removeMessage(chatId, messageId)
-      }
-    },
+  const chatDB = {
+    addMessage,
+    updateMessage,
+    removeMessage,
     getCurrentMessages,
     generateId,
-  })
+  }
+  const { isGenerating, sendMessage, stopGeneration } = useAIChatForExistingChat(
+    chatId || '',
+    chatDB
+  )
 
   const handleBranch = (messageId: string) => {
     branchManager.openBranchCreationModal(messageId)

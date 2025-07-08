@@ -7,13 +7,12 @@ import { useRouter } from 'next/navigation'
 import { Sidebar } from '@/components/ui/sidebar'
 import { ChatInterface } from '@/components/chat/chat-interface'
 import { useChatDB } from '@/hooks/useChatDB'
-import { useAIChat } from '@/hooks/useAIChat'
-import type { Message } from '@/components/chat/message'
+import { useAIChatForNewChat } from '@/hooks/useAIChat'
 
 export default function NewChatPage() {
   const router = useRouter()
   const [isCreatingChat, setIsCreatingChat] = React.useState(false)
-  const [tempMessages, setTempMessages] = React.useState<Message[]>([])
+  const { tempMessages, isGenerating, stopGeneration } = useAIChatForNewChat()
 
   const {
     chats,
@@ -23,35 +22,9 @@ export default function NewChatPage() {
     deleteChat,
     renameChat,
     setSidebarCollapsed,
-    generateId,
   } = useChatDB()
 
-  const { isGenerating, sendMessage, stopGeneration } = useAIChat({
-    onMessageAdd: async message => {
-      // Always store in temp messages for new chat
-      if (!isCreatingChat) {
-        setTempMessages(prev => [...prev, message])
-        return message.id
-      }
-      return null
-    },
-    onMessageUpdate: (messageId, updates) => {
-      setTempMessages(prev =>
-        prev.map(msg => (msg.id === messageId ? { ...msg, ...updates } : msg))
-      )
-    },
-    onMessageRemove: messageId => {
-      setTempMessages(prev => prev.filter(msg => msg.id !== messageId))
-    },
-    getCurrentMessages: () => {
-      // Always return temp messages on new chat page
-      return tempMessages
-    },
-    generateId,
-  })
-
   const handleSendMessage = async (content: string) => {
-    // Always create a new chat on first message
     if (!isCreatingChat) {
       setIsCreatingChat(true)
 
@@ -73,7 +46,7 @@ export default function NewChatPage() {
     <div className="flex h-screen bg-white dark:bg-gray-950">
       <Sidebar
         chats={chats}
-        activeChat={undefined} // Always show no active chat on new page
+        activeChat={undefined}
         onNewChat={() => {
           router.push('/chat/new')
         }}

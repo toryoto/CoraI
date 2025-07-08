@@ -2,17 +2,17 @@ import { useState, useCallback } from 'react'
 import { ChatAPI, type ChatMessage } from '@/lib/chat-client'
 import { type Message } from '@/components/chat/message'
 
-interface MessageCallbacks {
-  onMessageAdd: (message: Message) => Promise<string | null>
-  onMessageUpdate: (messageId: string, updates: Partial<Message>) => void
-  onMessageRemove: (messageId: string) => void
-  getCurrentMessages: () => Message[]
+// MessageStoreインターフェースを定義
+export interface MessageStore {
+  addMessage: (message: Message) => Promise<string | null>
+  updateMessage: (messageId: string, updates: Partial<Message>) => void
+  removeMessage: (messageId: string) => void
+  getMessages: () => Message[]
   generateId: () => string
 }
 
-export function useAIChat(callbacks: MessageCallbacks) {
-  const { onMessageAdd, onMessageUpdate, onMessageRemove, getCurrentMessages, generateId } =
-    callbacks
+export function useAIChat(store: MessageStore) {
+  const { addMessage, updateMessage, removeMessage, getMessages, generateId } = store
   const [isGenerating, setIsGenerating] = useState(false)
   const [abortController, setAbortController] = useState<AbortController | null>(null)
 
@@ -27,12 +27,12 @@ export function useAIChat(callbacks: MessageCallbacks) {
   const sendMessage = useCallback(
     async (content: string) => {
       // Add user message
-      await onMessageAdd(createMessage(content, 'user'))
+      await addMessage(createMessage(content, 'user'))
 
       // Start generating AI response
       setIsGenerating(true)
 
-      const typingMessageId = await onMessageAdd(createMessage('', 'assistant', true))
+      const typingMessageId = await addMessage(createMessage('', 'assistant', true))
       if (!typingMessageId) {
         setIsGenerating(false)
         return
@@ -45,7 +45,7 @@ export function useAIChat(callbacks: MessageCallbacks) {
 
         // Convert messages to API format
         const apiMessages: ChatMessage[] = [
-          ...getCurrentMessages()
+          ...getMessages()
             .filter(msg => !msg.isTyping)
             .map(({ role, content }) => ({ role, content })),
           { role: 'user', content },
@@ -60,22 +60,22 @@ export function useAIChat(callbacks: MessageCallbacks) {
             accumulatedContent += streamContent
 
             // Update the typing message with accumulated content (mark as streaming)
-            onMessageUpdate(typingMessageId, {
+            updateMessage(typingMessageId, {
               content: accumulatedContent,
               isTyping: false,
-              isStreaming: true, // カスタムフラグでストリーミング中であることを示す
-            } as any)
+              isStreaming: true, // 型安全に
+            })
           },
           onComplete: (fullContent: string) => {
             // Use accumulated content if fullContent is empty
             const finalContent = fullContent || accumulatedContent
 
             // Final update to ensure we have the complete message (not streaming)
-            onMessageUpdate(typingMessageId, {
+            updateMessage(typingMessageId, {
               content: finalContent,
               isTyping: false,
               isStreaming: false, // ストリーミング完了
-            } as any)
+            })
             setIsGenerating(false)
             setAbortController(null)
           },
@@ -83,9 +83,9 @@ export function useAIChat(callbacks: MessageCallbacks) {
             console.error('Chat API error:', error)
 
             if (controller.signal.aborted) {
-              onMessageRemove(typingMessageId)
+              removeMessage(typingMessageId)
             } else {
-              onMessageUpdate(typingMessageId, {
+              updateMessage(typingMessageId, {
                 content: `エラーが発生しました: ${error}`,
                 isTyping: false,
               })
@@ -96,8 +96,8 @@ export function useAIChat(callbacks: MessageCallbacks) {
         })
       } catch (error) {
         console.error('Failed to send message:', error)
-        onMessageRemove(typingMessageId)
-        await onMessageAdd(
+        removeMessage(typingMessageId)
+        await addMessage(
           createMessage(
             '申し訳ございませんが、メッセージの送信に失敗しました。しばらく待ってから再度お試しください。',
             'assistant'
@@ -106,7 +106,7 @@ export function useAIChat(callbacks: MessageCallbacks) {
         setIsGenerating(false)
       }
     },
-    [onMessageAdd, onMessageUpdate, onMessageRemove, getCurrentMessages, generateId]
+    [addMessage, updateMessage, removeMessage, getMessages, generateId]
   )
 
   const stopGeneration = useCallback(() => {
@@ -122,4 +122,45 @@ export function useAIChat(callbacks: MessageCallbacks) {
     sendMessage,
     stopGeneration,
   }
+}
+
+// プリセット付きファクトリー関数: 新規チャット用
+export function useAIChatForNewChat() {
+  const [tempMessages, setTempMessages] = useState<Message[]>([])
+  const store: MessageStore = {
+    addMessage: async (message) => {
+      setTempMessages(prev => [...prev, message])
+      return message.id
+    },
+    updateMessage: (messageId, updates) => {
+      setTempMessages(prev =>
+        prev.map(msg => (msg.id === messageId ? { ...msg, ...updates } : msg))
+      )
+    },
+    removeMessage: (messageId) => {
+      setTempMessages(prev => prev.filter(msg => msg.id !== messageId))
+    },
+    getMessages: () => tempMessages,
+    generateId: () => crypto.randomUUID(),
+  }
+  const aiChat = useAIChat(store)
+  return { ...aiChat, tempMessages, setTempMessages }
+}
+
+// プリセット付きファクトリー関数: 既存チャット用
+export function useAIChatForExistingChat(chatId: string, chatDB: {
+  addMessage: (chatId: string, message: Message) => Promise<string | null>
+  updateMessage: (chatId: string, messageId: string, updates: Partial<Message>) => void
+  removeMessage: (chatId: string, messageId: string) => void
+  getCurrentMessages: () => Message[]
+  generateId: () => string
+}) {
+  const store: MessageStore = {
+    addMessage: (message) => chatDB.addMessage(chatId, message),
+    updateMessage: (messageId, updates) => chatDB.updateMessage(chatId, messageId, updates),
+    removeMessage: (messageId) => chatDB.removeMessage(chatId, messageId),
+    getMessages: () => chatDB.getCurrentMessages(),
+    generateId: () => chatDB.generateId(),
+  }
+  return useAIChat(store)
 }
