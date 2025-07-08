@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { type Chat } from '@/components/ui/sidebar'
 import { type Message } from '@/components/chat/message'
+import { useSidebar } from './useSidebar'
 
 interface DBChat {
   id: string
@@ -30,7 +31,6 @@ export function useChatDB() {
   const [messages, setMessages] = useState<Record<string, Message[]>>({})
   const [activeChat, setActiveChat] = useState<string | undefined>(undefined)
   const [activeBranch, setActiveBranch] = useState<string | undefined>(undefined)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [loading, setLoading] = useState(true)
 
   // チャット一覧を取得
@@ -161,7 +161,6 @@ export function useChatDB() {
   const selectChat = useCallback(
     (chatId: string) => {
       setActiveChat(chatId)
-      fetchChatMessages(chatId)
     },
     [fetchChatMessages]
   )
@@ -338,7 +337,6 @@ export function useChatDB() {
     messages,
     activeChat,
     activeBranch,
-    sidebarCollapsed,
     loading,
 
     // Actions
@@ -350,7 +348,6 @@ export function useChatDB() {
     updateMessage,
     removeMessage,
     updateChatPreview,
-    setSidebarCollapsed,
     setActiveChat,
     setActiveBranch,
 

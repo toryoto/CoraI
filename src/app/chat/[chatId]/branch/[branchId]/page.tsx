@@ -11,6 +11,7 @@ import { useChatDB } from '@/hooks/useChatDB'
 import { useAIChatForExistingChat } from '@/hooks/useAIChat'
 import { useBranchManager } from '@/hooks/useBranchManager'
 import { type Message } from '@/components/chat/message'
+import { useSidebar } from '@/hooks/useSidebar'
 
 export default function BranchChatPage() {
   const params = useParams()
@@ -21,14 +22,14 @@ export default function BranchChatPage() {
   const {
     chats,
     activeChat,
-    sidebarCollapsed,
     selectChat,
     deleteChat,
     renameChat,
-    setSidebarCollapsed,
     getCurrentMessages,
     generateId,
   } = useChatDB()
+
+  const { sidebarCollapsed, setSidebarCollapsed } = useSidebar()
 
   // Branch management
   const branchManager = useBranchManager({

@@ -8,6 +8,7 @@ import { Sidebar } from '@/components/ui/sidebar'
 import { ChatInterface } from '@/components/chat/chat-interface'
 import { useChatDB } from '@/hooks/useChatDB'
 import { useAIChatForNewChat } from '@/hooks/useAIChat'
+import { useSidebar } from '@/hooks/useSidebar'
 
 export default function NewChatPage() {
   const router = useRouter()
@@ -16,13 +17,13 @@ export default function NewChatPage() {
 
   const {
     chats,
-    sidebarCollapsed,
     createNewChat,
     selectChat,
     deleteChat,
     renameChat,
-    setSidebarCollapsed,
   } = useChatDB()
+
+  const { sidebarCollapsed, setSidebarCollapsed } = useSidebar()
 
   const handleSendMessage = async (content: string) => {
     if (!isCreatingChat) {
@@ -34,8 +35,8 @@ export default function NewChatPage() {
       if (newChatData) {
         const { chatId } = newChatData
 
-        // Navigate to the new chat with the first message to send
-        window.location.href = `/chat/${chatId}?firstMessage=${encodeURIComponent(content)}`
+        //window.location.href = `/chat/${chatId}?firstMessage=${encodeURIComponent(content)}`
+        router.push(`/chat/${chatId}?firstMessage=${encodeURIComponent(content)}`)
       }
 
       setIsCreatingChat(false)

@@ -3,6 +3,7 @@
 export const dynamic = 'force-dynamic'
 
 import React from 'react'
+import { useEffect } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { Sidebar } from '@/components/ui/sidebar'
 import { ChatInterface } from '@/components/chat/chat-interface'
@@ -10,6 +11,7 @@ import { BranchCreationModal } from '@/components/branch/branch-creation-modal'
 import { useChatDB } from '@/hooks/useChatDB'
 import { useAIChatForExistingChat } from '@/hooks/useAIChat'
 import { useBranchManager } from '@/hooks/useBranchManager'
+import { useSidebar } from '@/hooks/useSidebar'
 
 export default function ChatIdPage() {
   const params = useParams()
@@ -24,17 +26,17 @@ export default function ChatIdPage() {
     chats,
     activeChat,
     activeBranch,
-    sidebarCollapsed,
     selectChat,
     deleteChat,
     renameChat,
     addMessage,
     updateMessage,
     removeMessage,
-    setSidebarCollapsed,
     getCurrentMessages,
     generateId,
   } = useChatDB()
+
+  const { sidebarCollapsed, setSidebarCollapsed } = useSidebar()
 
   // Branch management
   const branchManager = useBranchManager({
@@ -44,14 +46,14 @@ export default function ChatIdPage() {
   })
 
   // Select the chat if not already selected
-  React.useEffect(() => {
+  useEffect(() => {
     if (chatId && activeChat !== chatId) {
       selectChat(chatId)
     }
   }, [chatId, activeChat, selectChat])
 
   // Fetch and set current branch when chat is loaded
-  React.useEffect(() => {
+  useEffect(() => {
     if (chatId && activeBranch && branchManager.currentBranchId !== activeBranch) {
       // Use activeBranch from useChatDB as currentBranchId
       branchManager.switchBranch(activeBranch)
@@ -59,7 +61,7 @@ export default function ChatIdPage() {
   }, [chatId, activeBranch]) // Remove branchManager from dependencies
 
   // Switch to the specified branch if provided in URL
-  React.useEffect(() => {
+  useEffect(() => {
     if (branchId && branchId !== branchManager.currentBranchId) {
       branchManager.switchBranch(branchId)
     }
@@ -106,7 +108,7 @@ export default function ChatIdPage() {
   }
 
   // Handle first message from /chat/new
-  React.useEffect(() => {
+  useEffect(() => {
     // Early return if already processed
     if (firstMessageProcessed) return
 
