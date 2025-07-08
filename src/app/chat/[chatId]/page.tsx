@@ -13,6 +13,7 @@ import { useMessages } from '@/hooks/useMessages'
 import { useAIChatForExistingChat } from '@/hooks/useAIChat'
 import { useBranchManager } from '@/hooks/useBranchManager'
 import { useSidebar } from '@/hooks/useSidebar'
+import { Branch, BranchMessage } from '@/types/branch'
 
 export default function ChatIdPage() {
   const params = useParams()
@@ -23,6 +24,11 @@ export default function ChatIdPage() {
   const firstMessage = searchParams.get('firstMessage')
   const [firstMessageProcessed, setFirstMessageProcessed] = useState(false)
   const mainBranchIdFromUrl = searchParams.get('mainBranchId')
+
+  // ブランチデータの状態管理
+  const [branches, setBranches] = useState<Branch[]>([])
+  const [branchMessages, setBranchMessages] = useState<Record<string, BranchMessage[]>>({})
+  const [branchesLoaded, setBranchesLoaded] = useState(false)
 
   const {
     chats,
@@ -45,34 +51,82 @@ export default function ChatIdPage() {
 
   const { sidebarCollapsed, setSidebarCollapsed } = useSidebar()
 
-  // Branch management
+  // ブランチデータを取得する関数
+  const fetchBranches = async () => {
+    if (!chatId) return
+    try {
+      const response = await fetch(`/api/chats/${chatId}/branches`)
+      if (response.ok) {
+        const branchesData = await response.json()
+        // ブランチデータをフォーマット
+        const formattedBranches: Branch[] = branchesData.map((branch: any) => ({
+          id: branch.id,
+          chatId: branch.chatId,
+          parentBranchId: branch.parentBranchId,
+          name: branch.name,
+          color: branch.color || '#3b82f6',
+          isActive: false,
+          createdAt: new Date(branch.createdAt),
+          updatedAt: new Date(branch.updatedAt),
+          metadata: branch.metadata || {},
+        }))
+        // メッセージデータをフォーマット
+        const messagesData: Record<string, BranchMessage[]> = {}
+        branchesData.forEach((branch: any) => {
+          messagesData[branch.id] = branch.messages.map((msg: any) => ({
+            id: msg.id,
+            branchId: msg.branchId,
+            parentMessageId: msg.parentMessageId,
+            content: msg.content,
+            role: msg.role,
+            timestamp: new Date(msg.createdAt),
+            metadata: msg.metadata || {},
+          }))
+        })
+        setBranches(formattedBranches)
+        setBranchMessages(messagesData)
+        setBranchesLoaded(true)
+      }
+    } catch (error) {
+      console.error('Failed to fetch branches:', error)
+    }
+  }
+
+  // useBranchManagerは初期値は空でOK。データ取得後にsetBranches/setMessagesで反映
   const branchManager = useBranchManager({
     chatId: chatId,
     initialBranches: [],
     initialMessages: {},
   })
 
-  // Select the chat if not already selected
+  // ブランチデータ取得は初回のみ
+  useEffect(() => {
+    fetchBranches()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatId])
+
+  // ブランチデータ取得後にbranchManagerへ反映
+  useEffect(() => {
+    if (branchesLoaded) {
+      branchManager.setBranches?.(branches)
+      branchManager.setMessages(branchMessages)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [branchesLoaded, branches, branchMessages])
+
+  // チャット選択
   useEffect(() => {
     if (chatId && activeChat !== chatId) {
       selectChat(chatId)
     }
   }, [chatId, activeChat, selectChat])
 
-  // Fetch and set current branch when chat is loaded
-  useEffect(() => {
-    if (chatId && activeChat && branchManager.currentBranchId !== activeChat) {
-      // Use activeChat from useChatList as currentBranchId
-      branchManager.switchBranch(activeChat)
-    }
-  }, [chatId, activeChat]) // Remove branchManager from dependencies
-
-  // Switch to the specified branch if provided in URL
+  // ブランチ切り替え
   useEffect(() => {
     if (branchId && branchId !== branchManager.currentBranchId) {
       branchManager.switchBranch(branchId)
     }
-  }, [branchId]) // Only depend on branchId
+  }, [branchId, branchManager])
 
   const chatDB = {
     addMessage: async (chatId: string, message: any) => {
@@ -98,7 +152,10 @@ export default function ChatIdPage() {
   const { isGenerating, sendMessage, stopGeneration } = useAIChatForExistingChat(chatId || '', chatDB)
 
   const handleBranch = (messageId: string) => {
-    branchManager.openBranchCreationModal(messageId)
+    const parentMessage = messages.find(m => m.id === messageId)
+    if (parentMessage) {
+      branchManager.openBranchCreationModal(messageId, parentMessage)
+    }
   }
 
   const handleViewBranches = () => {
@@ -206,6 +263,7 @@ export default function ChatIdPage() {
           }
         }}
         isCreating={branchManager.isCreatingBranch}
+        parentMessage={branchManager.branchCreationModal.parentMessage}
       />
     </div>
   )

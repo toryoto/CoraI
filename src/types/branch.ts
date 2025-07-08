@@ -44,6 +44,7 @@ export interface BranchCreationConfig {
 interface BranchCreationModal {
   isOpen: boolean
   parentMessageId: string | null
+  parentMessage?: { id: string; content: string; role: string }
   config: BranchCreationConfig
 }
 

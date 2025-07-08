@@ -39,7 +39,7 @@ interface BranchManagerActions {
   switchBranch: (branchId: string) => void
   deleteBranch: (branchId: string) => Promise<void>
   updateBranch: (branchId: string, updates: Partial<Branch>) => Promise<void>
-  openBranchCreationModal: (parentMessageId: string) => void
+  openBranchCreationModal: (parentMessageId: string, parentMessage?: { id: string; content: string; role: string }) => void
   closeBranchCreationModal: () => void
   updateBranchCreationConfig: (config: Partial<BranchCreationConfig>) => void
   addMessageToBranch: (branchId: string, message: Omit<BranchMessage, 'id' | 'timestamp'>) => void
@@ -71,29 +71,6 @@ export const useBranchManager = ({
     updateBranchCreationConfig,
     setBranchCreationModal,
   } = useBranchCreationModal()
-
-  // Initialize main branch if no branches exist
-  useEffect(() => {
-    if (branches.length === 0) {
-      const mainBranch: Branch = {
-        id: 'main',
-        chatId,
-        parentBranchId: null,
-        name: 'Main',
-        color: DEFAULT_BRANCH_COLORS[0],
-        isActive: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        metadata: {
-          purpose: 'Main conversation thread',
-          tags: ['main'],
-          priority: 'high',
-        },
-      }
-      setBranches([mainBranch])
-      setCurrentBranchId('main')
-    }
-  }, [chatId, branches.length])
 
   const createBranchMessage = (
     data: Partial<BranchMessage>,
@@ -263,22 +240,38 @@ export const useBranchManager = ({
     }
   }, [])
 
+  // 分岐元ブランチを取得する共通関数
+  function getBaseBranch(branches: Branch[], initialBranches: Branch[], currentBranchId: string | null): Branch | undefined {
+    const branchList = branches.length > 0 ? branches : initialBranches
+    let baseBranchId = currentBranchId
+    if (!baseBranchId && branchList.length > 0) {
+      baseBranchId = branchList[0].id
+    }
+    return branchList.find(b => b.id === baseBranchId)
+  }
+
   const createBranches = useCallback(
     async (config: BranchCreationConfig, parentMessageId: string) => {
       setIsCreatingBranch(true)
 
       try {
         const newBranches: Branch[] = []
+        const parentMessage = branchCreationModal.parentMessage
+
+        // 共通関数で分岐元ブランチ取得
+        const currentBranch = getBaseBranch(branches, initialBranches, currentBranchId)
+        if (!currentBranch) throw new Error('分岐元ブランチが見つかりません')
 
         for (let i = 0; i < config.branches.length; i++) {
           const branchConfig = config.branches[i]
+          // mainブランチも含め、常に分岐元のIDをparentBranchIdに指定
+          const newBranchParentId = currentBranch.id
 
-          // Create branch in database
           const createdBranch = await apiRequest(`/api/chats/${chatId}/branches`, {
             method: 'POST',
             body: JSON.stringify({
               name: branchConfig.name,
-              parentBranchId: currentBranchId || null,
+              parentBranchId: newBranchParentId,
             }),
           })
 
@@ -296,8 +289,69 @@ export const useBranchManager = ({
 
           newBranches.push(newBranch)
 
-          // Add user message and generate AI response if question exists
-          if (branchConfig.question.trim()) {
+          if (parentMessage) {
+            try {
+              const savedParentMessage = await apiRequest(`/api/branches/${newBranch.id}/messages`, {
+                method: 'POST',
+                body: JSON.stringify({
+                  content: parentMessage.content,
+                  role: parentMessage.role,
+                  isTyping: false,
+                }),
+              })
+
+              const copiedMessage = createBranchMessage(
+                {
+                  branchId: newBranch.id,
+                  role: parentMessage.role as 'user' | 'assistant',
+                  parentMessageId: null,
+                  content: savedParentMessage.content,
+                },
+                savedParentMessage
+              )
+
+              setMessages(prev => ({
+                ...prev,
+                [newBranch.id]: [copiedMessage],
+              }))
+
+              if (branchConfig.question.trim()) {
+                const savedUserMessage = await apiRequest(`/api/branches/${newBranch.id}/messages`, {
+                  method: 'POST',
+                  body: JSON.stringify({
+                    content: branchConfig.question,
+                    role: 'user',
+                    isTyping: false,
+                  }),
+                })
+
+                const userMessage = createBranchMessage(
+                  {
+                    branchId: newBranch.id,
+                    role: 'user',
+                    parentMessageId: savedParentMessage.id,
+                    content: savedUserMessage.content,
+                  },
+                  savedUserMessage
+                )
+
+                setMessages(prev => ({
+                  ...prev,
+                  [newBranch.id]: [...(prev[newBranch.id] || []), userMessage],
+                }))
+
+                generateAIResponse(newBranch.id, branchConfig.question).catch(error => {
+                  console.error(`Failed to generate AI response for branch ${newBranch.id}:`, error)
+                })
+              } else if (parentMessage.role === 'user') {
+                generateAIResponse(newBranch.id, parentMessage.content).catch(error => {
+                  console.error(`Failed to generate AI response for branch ${newBranch.id}:`, error)
+                })
+              }
+            } catch (error) {
+              console.error('Error copying parent message:', error)
+            }
+          } else if (branchConfig.question.trim()) {
             try {
               const savedUserMessage = await apiRequest(`/api/branches/${newBranch.id}/messages`, {
                 method: 'POST',
@@ -318,13 +372,11 @@ export const useBranchManager = ({
                 savedUserMessage
               )
 
-              // Add user message to local state
               setMessages(prev => ({
                 ...prev,
                 [newBranch.id]: [userMessage],
               }))
 
-              // Generate AI response for this branch (fire and forget)
               generateAIResponse(newBranch.id, branchConfig.question).catch(error => {
                 console.error(`Failed to generate AI response for branch ${newBranch.id}:`, error)
               })
@@ -334,37 +386,27 @@ export const useBranchManager = ({
           }
         }
 
-        // Add new branches to state
         setBranches(prev => [...prev, ...newBranches])
 
-        // Switch to the first new branch
         if (newBranches.length > 0) {
           setCurrentBranchId(newBranches[0].id)
-
-          // Navigate to the specific branch page immediately
-          // The branch page will handle real-time updates
           router.push(`/chat/${chatId}/branch/${newBranches[0].id}`)
         }
 
-        // Close modal
         closeBranchCreationModal()
-
-        // Notify parent component
         onBranchCreated?.(newBranches)
       } catch (error) {
+        console.error('Failed to create branches:', error)
         throw error
       } finally {
         setIsCreatingBranch(false)
       }
     },
-    [chatId, currentBranchId, generateAIResponse, router, onBranchCreated, closeBranchCreationModal]
+    [chatId, currentBranchId, branches, generateAIResponse, router, onBranchCreated, closeBranchCreationModal, branchCreationModal.parentMessage, initialBranches]
   )
 
   const switchBranch = useCallback((branchId: string) => {
-    // Update current branch
     setCurrentBranchId(branchId)
-
-    // Update branch active status
     setBranches(prev =>
       prev.map(branch => ({
         ...branch,
@@ -375,31 +417,29 @@ export const useBranchManager = ({
 
   const deleteBranch = useCallback(
     async (branchId: string) => {
-      if (branchId === 'main') {
+      // main判定はparentBranchIdで行う
+      const branch = branches.find(b => b.id === branchId)
+      if (branch && branch.parentBranchId === null) {
         throw new Error('Cannot delete main branch')
       }
-
       try {
-        // Remove branch from state
         setBranches(prev => prev.filter(branch => branch.id !== branchId))
-
-        // Remove messages for this branch
         setMessages(prev => {
           const newMessages = { ...prev }
           delete newMessages[branchId]
           return newMessages
         })
-
-        // If deleted branch was active, switch to main
         if (currentBranchId === branchId) {
-          setCurrentBranchId('main')
+          // mainブランチ以外のどれかに切り替えるか、nullにする
+          const remaining = branches.filter(b => b.id !== branchId)
+          setCurrentBranchId(remaining.length > 0 ? remaining[0].id : null)
         }
       } catch (error) {
         console.error('Failed to delete branch:', error)
         throw error
       }
     },
-    [currentBranchId]
+    [currentBranchId, branches]
   )
 
   const updateBranch = useCallback(async (branchId: string, updates: Partial<Branch>) => {

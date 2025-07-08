@@ -5,13 +5,15 @@ export const useBranchCreationModal = () => {
   const [branchCreationModal, setBranchCreationModal] = useState<BranchState['branchCreationModal']>({
     isOpen: false,
     parentMessageId: null,
+    parentMessage: undefined,
     config: DEFAULT_BRANCH_CONFIG,
   })
 
-  const openBranchCreationModal = useCallback((parentMessageId: string) => {
+  const openBranchCreationModal = useCallback((parentMessageId: string, parentMessage?: { id: string; content: string; role: string }) => {
     setBranchCreationModal({
       isOpen: true,
       parentMessageId,
+      parentMessage,
       config: DEFAULT_BRANCH_CONFIG,
     })
   }, [])
@@ -20,6 +22,7 @@ export const useBranchCreationModal = () => {
     setBranchCreationModal({
       isOpen: false,
       parentMessageId: null,
+      parentMessage: undefined,
       config: DEFAULT_BRANCH_CONFIG,
     })
   }, [])

@@ -29,6 +29,7 @@ interface BranchCreationModalProps {
   onConfigChange: (config: Partial<BranchCreationConfig>) => void
   onCreateBranches: (config: BranchCreationConfig) => Promise<void>
   isCreating: boolean
+  parentMessage?: { id: string; content: string; role: string }
 }
 
 export function BranchCreationModal({
@@ -38,6 +39,7 @@ export function BranchCreationModal({
   onConfigChange,
   onCreateBranches,
   isCreating,
+  parentMessage,
 }: BranchCreationModalProps) {
   const [step, setStep] = useState<'setup' | 'preview'>('setup')
 
@@ -113,7 +115,9 @@ export function BranchCreationModal({
     }
   }, [config, onCreateBranches])
 
-  const canProceed = config.branches.every(branch => branch.name.trim() && branch.question.trim())
+  const canProceed = parentMessage 
+    ? config.branches.every(branch => branch.name.trim())
+    : config.branches.every(branch => branch.name.trim() && branch.question.trim())
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -127,6 +131,18 @@ export function BranchCreationModal({
 
         {step === 'setup' && (
           <div className="space-y-6">
+            {/* Parent Message Display */}
+            {parentMessage && (
+              <div className="space-y-2">
+                <Label>Branching from message:</Label>
+                <div className="border rounded-lg p-4 bg-gray-50">
+                  <div className="text-sm text-gray-600 mb-1">
+                    {parentMessage.role === 'user' ? 'User' : 'Assistant'}
+                  </div>
+                  <div className="text-sm whitespace-pre-wrap">{parentMessage.content}</div>
+                </div>
+              </div>
+            )}
             {/* Branch Count Selection */}
             <div className="space-y-2">
               <Label htmlFor="branch-count">Number of branches</Label>
@@ -198,12 +214,16 @@ export function BranchCreationModal({
                   </div>
 
                   <div>
-                    <Label htmlFor={`branch-question-${index}`}>Question</Label>
+                    <Label htmlFor={`branch-question-${index}`}>
+                      {parentMessage ? 'Additional Question (Optional)' : 'Question'}
+                    </Label>
                     <Textarea
                       id={`branch-question-${index}`}
                       value={branch.question}
                       onChange={e => handleBranchChange(index, 'question', e.target.value)}
-                      placeholder="Enter your question for this branch..."
+                      placeholder={parentMessage 
+                        ? "Optionally add a follow-up question for this branch..."
+                        : "Enter your question for this branch..."}
                       rows={3}
                     />
                   </div>
@@ -238,7 +258,9 @@ export function BranchCreationModal({
                     />
                     <div className="flex-1">
                       <div className="font-medium">{branch.name}</div>
-                      <div className="text-sm text-gray-600 mt-1">{branch.question}</div>
+                      {branch.question && (
+                        <div className="text-sm text-gray-600 mt-1">{branch.question}</div>
+                      )}
                     </div>
                   </div>
                 ))}
