@@ -13,7 +13,7 @@ import { useMessages } from '@/hooks/useMessages'
 import { useAIChatForExistingChat } from '@/hooks/useAIChat'
 import { useBranchManager } from '@/hooks/useBranchManager'
 import { useSidebar } from '@/hooks/useSidebar'
-import { Branch, BranchMessage } from '@/types/branch'
+import { Branch } from '@/types/branch'
 
 export default function ChatIdPage() {
   const params = useParams()
@@ -24,11 +24,6 @@ export default function ChatIdPage() {
   const firstMessage = searchParams.get('firstMessage')
   const [firstMessageProcessed, setFirstMessageProcessed] = useState(false)
   const mainBranchIdFromUrl = searchParams.get('mainBranchId')
-
-  // ブランチデータの状態管理
-  const [branches, setBranches] = useState<Branch[]>([])
-  const [branchMessages, setBranchMessages] = useState<Record<string, BranchMessage[]>>({})
-  const [branchesLoaded, setBranchesLoaded] = useState(false)
 
   const {
     chats,
@@ -51,47 +46,6 @@ export default function ChatIdPage() {
 
   const { sidebarCollapsed, setSidebarCollapsed } = useSidebar()
 
-  // ブランチデータを取得する関数
-  const fetchBranches = async () => {
-    if (!chatId) return
-    try {
-      const response = await fetch(`/api/chats/${chatId}/branches`)
-      if (response.ok) {
-        const branchesData = await response.json()
-        // ブランチデータをフォーマット
-        const formattedBranches: Branch[] = branchesData.map((branch: any) => ({
-          id: branch.id,
-          chatId: branch.chatId,
-          parentBranchId: branch.parentBranchId,
-          name: branch.name,
-          color: branch.color || '#3b82f6',
-          isActive: false,
-          createdAt: new Date(branch.createdAt),
-          updatedAt: new Date(branch.updatedAt),
-          metadata: branch.metadata || {},
-        }))
-        // メッセージデータをフォーマット
-        const messagesData: Record<string, BranchMessage[]> = {}
-        branchesData.forEach((branch: any) => {
-          messagesData[branch.id] = branch.messages.map((msg: any) => ({
-            id: msg.id,
-            branchId: msg.branchId,
-            parentMessageId: msg.parentMessageId,
-            content: msg.content,
-            role: msg.role,
-            timestamp: new Date(msg.createdAt),
-            metadata: msg.metadata || {},
-          }))
-        })
-        setBranches(formattedBranches)
-        setBranchMessages(messagesData)
-        setBranchesLoaded(true)
-      }
-    } catch (error) {
-      console.error('Failed to fetch branches:', error)
-    }
-  }
-
   // useBranchManagerは初期値は空でOK。データ取得後にsetBranches/setMessagesで反映
   const branchManager = useBranchManager({
     chatId: chatId,
@@ -101,18 +55,11 @@ export default function ChatIdPage() {
 
   // ブランチデータ取得は初回のみ
   useEffect(() => {
-    fetchBranches()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chatId])
-
-  // ブランチデータ取得後にbranchManagerへ反映
-  useEffect(() => {
-    if (branchesLoaded) {
-      branchManager.setBranches?.(branches)
-      branchManager.setMessages(branchMessages)
+    if (chatId) {
+      branchManager.fetchBranches()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [branchesLoaded, branches, branchMessages])
+  }, [chatId])
 
   // チャット選択
   useEffect(() => {
@@ -149,20 +96,6 @@ export default function ChatIdPage() {
     }
   }
 
-  const currentBranch = React.useMemo(() => {
-    if (branchManager.currentBranchId) {
-      const branch = branchManager.branches.find(b => b.id === branchManager.currentBranchId)
-      if (branch) {
-        return {
-          id: branch.id,
-          name: branch.name,
-          color: branch.color,
-        }
-      }
-    }
-    return undefined
-  }, [branchManager.currentBranchId]) // Remove branchManager.branches to prevent infinite loop
-
   const handleSendMessage = async (content: string) => {
     sendMessage(content)
   }
@@ -173,12 +106,12 @@ export default function ChatIdPage() {
 
     const trySendFirstMessage = async () => {
       if (firstMessage && activeChat === chatId) {
-        // mainBranchIdがなければfetchMessagesで取得
+        // mainBranchIdがURLパラメータから取得できない場合は、fetchMessagesで取得
         if (!mainBranchId) {
           await fetchMessages()
         }
         if (mainBranchId) {
-          setFirstMessageProcessed(true)
+          setFirstMessageProcessed(true)          
           await sendMessage(firstMessage)
           setTimeout(() => {
             router.replace(`/chat/${chatId}`)
@@ -228,7 +161,7 @@ export default function ChatIdPage() {
           isGenerating={isGenerating}
           onStopGeneration={stopGeneration}
           onBranch={handleBranch}
-          currentBranch={currentBranch}
+          currentBranch={branchManager.currentBranch}
           onViewBranches={handleViewBranches}
         />
       </div>

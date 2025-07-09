@@ -11,7 +11,6 @@ import { useAIChatForExistingChat } from '@/hooks/useAIChat'
 import { useBranchManager } from '@/hooks/useBranchManager'
 import { useSidebar } from '@/hooks/useSidebar'
 import { Branch, BranchMessage } from '@/types/branch'
-import { useBranchMessages } from '@/hooks/useMessages'
 
 export default function BranchChatPage() {
   const params = useParams()
@@ -19,21 +18,25 @@ export default function BranchChatPage() {
   const chatId = params.chatId as string
   const branchId = params.branchId as string
 
-  // 分岐管理（分岐作成・切り替え専用）
+  // branchManagerでブランチとメッセージを統合管理
   const branchManager = useBranchManager({
     chatId: chatId,
     initialBranches: [],
     initialMessages: {},
   })
 
-  // ブランチ専用メッセージ管理
-  const {
-    messages,
-    fetchMessages,
-    addMessage,
-    updateMessage,
-    removeMessage,
-  } = useBranchMessages(branchId)
+  // 現在のブランチのメッセージを取得
+  const messages = useMemo(() => {
+    const branchMessages = branchManager.messages[branchId] || []
+    return branchMessages.map(msg => ({
+      id: msg.id,
+      content: msg.content,
+      role: msg.role as "user" | "assistant",
+      timestamp: msg.timestamp,
+      isTyping: Boolean(msg.metadata?.isTyping),
+      branchId: msg.branchId,
+    }))
+  }, [branchManager.messages, branchId])
 
   const {
     chats,
@@ -60,20 +63,35 @@ export default function BranchChatPage() {
     }
   }, [branchId, branchManager])
 
-  // 初回マウント時に過去メッセージを取得
+  // 初回マウント時にブランチメッセージを取得
   useEffect(() => {
-    fetchMessages()
-  }, [fetchMessages])
+    if (branchId) {
+      branchManager.fetchBranchMessages(branchId)
+    }
+  }, [branchId, branchManager.fetchBranchMessages])
 
   // サイドバーのチャット履歴を取得
   useEffect(() => {
     fetchChats()
   }, [fetchChats])
 
+  // AIチャット機能をbranchManagerと統合
   const { isGenerating, sendMessage, stopGeneration } = useAIChatForExistingChat(branchId, {
-    addMessage,
-    updateMessage,
-    removeMessage,
+    addMessage: async (message) => {
+      return branchManager.addMessageToBranchWithDB(branchId, {
+        branchId,
+        parentMessageId: null,
+        content: message.content,
+        role: message.role,
+        metadata: { isTyping: message.isTyping },
+      })
+    },
+    updateMessage: (messageId, updates) => {
+      branchManager.updateBranchMessage(messageId, updates)
+    },
+    removeMessage: (messageId) => {
+      branchManager.removeBranchMessage(messageId)
+    },
     getCurrentMessages: () => messages,
     generateId: () => crypto.randomUUID(),
   })
@@ -95,19 +113,7 @@ export default function BranchChatPage() {
     }
   }
 
-  const currentBranch = React.useMemo(() => {
-    if (branchManager.currentBranchId) {
-      const branch = branchManager.branches.find(b => b.id === branchManager.currentBranchId)
-      if (branch) {
-        return {
-          id: branch.id,
-          name: branch.name,
-          color: branch.color,
-        }
-      }
-    }
-    return undefined
-  }, [branchManager.currentBranchId, branchManager.branches])
+
 
   const handleSendMessage = async (content: string) => {
     sendMessage(content)
@@ -138,7 +144,7 @@ export default function BranchChatPage() {
           isGenerating={isGenerating}
           onStopGeneration={stopGeneration}
           onBranch={handleBranch}
-          currentBranch={currentBranch}
+          currentBranch={branchManager.currentBranch}
           onViewBranches={handleViewBranches}
         />
       </div>

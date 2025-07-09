@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Branch,
@@ -43,7 +43,13 @@ interface BranchManagerActions {
   closeBranchCreationModal: () => void
   updateBranchCreationConfig: (config: Partial<BranchCreationConfig>) => void
   addMessageToBranch: (branchId: string, message: Omit<BranchMessage, 'id' | 'timestamp'>) => void
+  addMessageToBranchWithDB: (branchId: string, message: Omit<BranchMessage, 'id' | 'timestamp'>) => Promise<string | null>
+  updateBranchMessage: (messageId: string, updates: Partial<BranchMessage>) => Promise<void>
+  removeBranchMessage: (messageId: string) => Promise<void>
+  fetchBranchMessages: (branchId: string) => Promise<void>
+  fetchBranches: () => Promise<void>
   setMessages: (messages: Record<string, BranchMessage[]>) => void
+  currentBranch: { id: string; name: string; color: string } | undefined
   generateBranchConfig: (branchCount: number) => BranchCreationConfig
   setBranches?: (branches: Branch[]) => void // Optional for internal use
 }
@@ -470,6 +476,157 @@ export const useBranchManager = ({
     []
   )
 
+  // ブランチデータ取得機能を追加
+  const fetchBranches = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/chats/${chatId}/branches`)
+      if (response.ok) {
+        const branchesData = await response.json()
+        // ブランチデータをフォーマット
+        const formattedBranches: Branch[] = branchesData.map((branch: any) => ({
+          id: branch.id,
+          chatId: branch.chatId,
+          parentBranchId: branch.parentBranchId,
+          name: branch.name,
+          color: branch.color || '#3b82f6',
+          isActive: false,
+          createdAt: new Date(branch.createdAt),
+          updatedAt: new Date(branch.updatedAt),
+          metadata: branch.metadata || {},
+        }))
+        // メッセージデータをフォーマット
+        const messagesData: Record<string, BranchMessage[]> = {}
+        branchesData.forEach((branch: any) => {
+          messagesData[branch.id] = branch.messages.map((msg: any) => ({
+            id: msg.id,
+            branchId: msg.branchId,
+            parentMessageId: msg.parentMessageId,
+            content: msg.content,
+            role: msg.role,
+            timestamp: new Date(msg.createdAt),
+            metadata: msg.metadata || {},
+          }))
+        })
+        setBranches(formattedBranches)
+        setMessages(messagesData)
+      }
+    } catch (error) {
+      console.error('Failed to fetch branches:', error)
+    }
+  }, [chatId])
+
+  // メッセージ取得機能を追加
+  const fetchBranchMessages = useCallback(async (branchId: string) => {
+    try {
+      const response = await fetch(`/api/branches/${branchId}/messages`)
+      const data = await response.json()
+      const formattedMessages = data.map((msg: any) => ({
+        id: msg.id,
+        branchId: msg.branchId,
+        parentMessageId: msg.parentMessageId,
+        content: msg.content,
+        role: msg.role,
+        timestamp: new Date(msg.createdAt),
+        metadata: msg.metadata || {},
+      }))
+      
+      setMessages(prev => ({
+        ...prev,
+        [branchId]: formattedMessages,
+      }))
+    } catch (error) {
+      console.error('Failed to fetch branch messages:', error)
+    }
+  }, [])
+
+  // メッセージ追加機能を改善（DBにも保存）
+  const addMessageToBranchWithDB = useCallback(async (branchId: string, message: Omit<BranchMessage, 'id' | 'timestamp'>) => {
+    try {
+      const response = await fetch(`/api/branches/${branchId}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: message.content,
+          role: message.role,
+          modelUsed: message.role === 'assistant' ? 'gpt-4o-mini' : undefined,
+          isTyping: message.metadata?.isTyping || false,
+        }),
+      })
+      const data = await response.json()
+      
+      const newMessage: BranchMessage = {
+        ...message,
+        id: data.id,
+        timestamp: new Date(data.createdAt),
+      }
+
+      setMessages(prev => ({
+        ...prev,
+        [branchId]: [...(prev[branchId] || []), newMessage],
+      }))
+      
+      return data.id
+    } catch (error) {
+      console.error('Failed to add message to branch:', error)
+      return null
+    }
+  }, [])
+
+  // メッセージ更新機能を改善（DBにも保存）
+  const updateBranchMessage = useCallback(async (messageId: string, updates: Partial<BranchMessage>) => {
+    try {
+      await fetch(`/api/messages/${messageId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      })
+      
+      setMessages(prev => {
+        const newMessages = { ...prev }
+        Object.keys(newMessages).forEach(branchId => {
+          newMessages[branchId] = newMessages[branchId].map(msg =>
+            msg.id === messageId ? { ...msg, ...updates } : msg
+          )
+        })
+        return newMessages
+      })
+    } catch (error) {
+      console.error('Failed to update branch message:', error)
+    }
+  }, [])
+
+  // メッセージ削除機能を改善（DBにも保存）
+  const removeBranchMessage = useCallback(async (messageId: string) => {
+    try {
+      await fetch(`/api/messages/${messageId}`, { method: 'DELETE' })
+      
+      setMessages(prev => {
+        const newMessages = { ...prev }
+        Object.keys(newMessages).forEach(branchId => {
+          newMessages[branchId] = newMessages[branchId].filter(msg => msg.id !== messageId)
+        })
+        return newMessages
+      })
+    } catch (error) {
+      console.error('Failed to remove branch message:', error)
+    }
+  }, [])
+
+  // 現在のブランチ情報を取得
+  const currentBranch = useMemo(() => {
+    if (currentBranchId) {
+      const branch = branches.find(b => b.id === currentBranchId)
+      if (branch) {
+        return {
+          id: branch.id,
+          name: branch.name,
+          color: branch.color,
+        }
+      }
+    }
+    return undefined
+  }, [currentBranchId, branches])
+
   return {
     // State
     branches,
@@ -492,7 +649,17 @@ export const useBranchManager = ({
 
     // Messages
     addMessageToBranch,
+    addMessageToBranchWithDB,
+    updateBranchMessage,
+    removeBranchMessage,
+    fetchBranchMessages,
     setMessages,
+
+    // Data fetching
+    fetchBranches,
+
+    // Computed values
+    currentBranch,
 
     // Utilities
     generateBranchConfig,

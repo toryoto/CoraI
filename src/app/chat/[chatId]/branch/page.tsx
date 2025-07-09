@@ -38,49 +38,10 @@ export default function BranchPage() {
 
   // Fetch branches from API
   useEffect(() => {
-    const fetchBranches = async () => {
-      try {
-        const response = await fetch(`/api/chats/${chatId}/branches`)
-        if (response.ok) {
-          const branches = await response.json()
-          // Convert API branches to branch manager format
-          const formattedBranches = branches.map((branch: any) => ({
-            id: branch.id,
-            chatId: branch.chatId,
-            parentBranchId: branch.parentBranchId,
-            name: branch.name,
-            color: branch.color || '#3b82f6', // Default color
-            isActive: false,
-            createdAt: new Date(branch.createdAt),
-            updatedAt: new Date(branch.updatedAt),
-            metadata: branch.metadata || {},
-          }))
-          branchManager.setBranches?.(formattedBranches)
-
-          // Also set messages for each branch
-          const messagesData: Record<string, any[]> = {}
-          branches.forEach((branch: any) => {
-            messagesData[branch.id] = branch.messages.map((msg: any) => ({
-              id: msg.id,
-              branchId: msg.branchId,
-              parentMessageId: msg.parentMessageId,
-              content: msg.content,
-              role: msg.role,
-              timestamp: new Date(msg.createdAt),
-              metadata: msg.metadata || {},
-            }))
-          })
-          branchManager.setMessages(messagesData)
-        }
-      } catch (error) {
-        console.error('Failed to fetch branches:', error)
-      }
-    }
-
     if (chatId) {
-      fetchBranches()
+      branchManager.fetchBranches()
     }
-  }, [chatId]) // Remove branchManager from dependencies
+  }, [chatId, branchManager.fetchBranches])
 
   // Select the chat if not already selected
   useEffect(() => {
