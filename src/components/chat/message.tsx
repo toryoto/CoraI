@@ -10,6 +10,7 @@ import {
   GitBranchIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import Image from 'next/image'
 
 export interface Message {
   id: string
@@ -61,21 +62,29 @@ export function MessageComponent({
       <div className="flex w-full max-w-4xl mx-auto">
         {/* Avatar */}
         <div className="flex-shrink-0 mr-4">
-          <div
-            className={cn(
-              'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium',
-              isUser ? 'bg-blue-500 text-white' : 'bg-green-500 text-white'
-            )}
-          >
-            {isUser ? 'You' : 'AI'}
-          </div>
+          {isUser ? (
+            <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium bg-blue-500 text-white">
+              You
+            </div>
+          ) : (
+            <div className="w-8 h-8 rounded-full flex items-center justify-center bg-white dark:bg-gray-800">
+              <Image
+                src="/corai-icon.png"
+                alt="CoraI"
+                width={36}
+                height={36}
+                className="rounded-full"
+                style={{ width: 'auto', height: 'auto' }}
+              />
+            </div>
+          )}
         </div>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center mb-2">
             <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-              {isUser ? 'You' : 'CoraI'}
+              {isUser ? 'You' : 'CoRaI'}
             </span>
             <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
               {message.timestamp.toLocaleTimeString('ja-JP', {

@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card'
 import { PlusIcon, MessageSquareIcon, PenIcon, TrashIcon, SearchIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CustomUserButton } from '@/components/user-button'
+import Image from 'next/image'
 
 export interface Chat {
   id: string
@@ -96,7 +97,16 @@ export function Sidebar({
       {/* Header */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-800">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">CoraI</h2>
+          <div className="flex items-center gap-2">
+            <Image
+              src="/corai-icon.png"
+              alt="CoraI"
+              width={24}
+              height={24}
+              style={{ width: 'auto', height: 'auto' }}
+            />
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">CoraI</h2>
+          </div>
           {onToggleCollapsed && (
             <Button variant="ghost" size="icon" onClick={onToggleCollapsed} className="h-8 w-8">
               ←
