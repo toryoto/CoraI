@@ -128,28 +128,13 @@ export default function ChatIdPage() {
     }
   }, [branchId, branchManager])
 
-  const chatDB = {
-    addMessage: async (chatId: string, message: any) => {
-      console.log('メインブランチID', mainBranchId)
-      if (mainBranchId) {
-        return addMessage(message, mainBranchId)
-      } else {
-        // mainBranchIdがまだ取得できていない場合はfetchMessages後に再試行
-        await fetchMessages()
-        if (mainBranchId) {
-          return addMessage(message, mainBranchId)
-        } else {
-          alert('メッセージ送信に失敗しました（mainBranchIdが取得できません）')
-          return Promise.reject('mainBranchId not found')
-        }
-      }
-    },
-    updateMessage: (chatId: string, messageId: string, updates: any) => updateMessage(messageId, updates),
-    removeMessage: (chatId: string, messageId: string) => removeMessage(messageId),
+  const { isGenerating, sendMessage, stopGeneration } = useAIChatForExistingChat(chatId || '', {
+    addMessage,
+    updateMessage,
+    removeMessage,
     getCurrentMessages: () => messages,
     generateId: () => crypto.randomUUID(),
-  }
-  const { isGenerating, sendMessage, stopGeneration } = useAIChatForExistingChat(chatId || '', chatDB)
+  })
 
   const handleBranch = (messageId: string) => {
     const parentMessage = messages.find(m => m.id === messageId)

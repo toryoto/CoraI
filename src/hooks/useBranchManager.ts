@@ -43,7 +43,6 @@ interface BranchManagerActions {
   closeBranchCreationModal: () => void
   updateBranchCreationConfig: (config: Partial<BranchCreationConfig>) => void
   addMessageToBranch: (branchId: string, message: Omit<BranchMessage, 'id' | 'timestamp'>) => void
-  getMessagesForBranch: (branchId: string) => BranchMessage[]
   setMessages: (messages: Record<string, BranchMessage[]>) => void
   generateBranchConfig: (branchCount: number) => BranchCreationConfig
   setBranches?: (branches: Branch[]) => void // Optional for internal use
@@ -471,13 +470,6 @@ export const useBranchManager = ({
     []
   )
 
-  const getMessagesForBranch = useCallback(
-    (branchId: string): BranchMessage[] => {
-      return messages[branchId] || []
-    },
-    [messages]
-  )
-
   return {
     // State
     branches,
@@ -500,7 +492,6 @@ export const useBranchManager = ({
 
     // Messages
     addMessageToBranch,
-    getMessagesForBranch,
     setMessages,
 
     // Utilities

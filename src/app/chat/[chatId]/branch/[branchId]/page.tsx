@@ -1,7 +1,5 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-
 import React from 'react'
 import { useEffect, useState, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
@@ -11,7 +9,6 @@ import { BranchCreationModal } from '@/components/branch/branch-creation-modal'
 import { useChatList } from '@/hooks/useChatList'
 import { useAIChatForExistingChat } from '@/hooks/useAIChat'
 import { useBranchManager } from '@/hooks/useBranchManager'
-import { type Message } from '@/components/chat/message'
 import { useSidebar } from '@/hooks/useSidebar'
 import { Branch, BranchMessage } from '@/types/branch'
 import { useBranchMessages } from '@/hooks/useMessages'
@@ -73,15 +70,13 @@ export default function BranchChatPage() {
     fetchChats()
   }, [fetchChats])
 
-  // メッセージ送信・更新・削除用DBラッパー
-  const chatDB = {
-    addMessage: async (_: string, message: Message) => addMessage(message),
-    updateMessage: (_: string, messageId: string, updates: Partial<Message>) => updateMessage(messageId, updates),
-    removeMessage: (_: string, messageId: string) => removeMessage(messageId),
+  const { isGenerating, sendMessage, stopGeneration } = useAIChatForExistingChat(branchId, {
+    addMessage,
+    updateMessage,
+    removeMessage,
     getCurrentMessages: () => messages,
     generateId: () => crypto.randomUUID(),
-  }
-  const { isGenerating, sendMessage, stopGeneration } = useAIChatForExistingChat(branchId, chatDB)
+  })
 
   const handleBranch = (messageId: string) => {
     const parentMessage = messages.find(m => m.id === messageId)

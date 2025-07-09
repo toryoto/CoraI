@@ -148,19 +148,22 @@ export function useAIChatForNewChat() {
 }
 
 // プリセット付きファクトリー関数: 既存チャット用
-export function useAIChatForExistingChat(chatId: string, chatDB: {
-  addMessage: (chatId: string, message: Message) => Promise<string | null>
-  updateMessage: (chatId: string, messageId: string, updates: Partial<Message>) => void
-  removeMessage: (chatId: string, messageId: string) => void
-  getCurrentMessages: () => Message[]
-  generateId: () => string
-}) {
+export function useAIChatForExistingChat(
+  chatId: string,
+  functions: {
+    addMessage: (message: Message) => Promise<string | null>
+    updateMessage: (messageId: string, updates: Partial<Message>) => void
+    removeMessage: (messageId: string) => void
+    getCurrentMessages: () => Message[]
+    generateId: () => string
+  }
+) {
   const store: MessageStore = {
-    addMessage: (message) => chatDB.addMessage(chatId, message),
-    updateMessage: (messageId, updates) => chatDB.updateMessage(chatId, messageId, updates),
-    removeMessage: (messageId) => chatDB.removeMessage(chatId, messageId),
-    getMessages: () => chatDB.getCurrentMessages(),
-    generateId: () => chatDB.generateId(),
+    addMessage: functions.addMessage,
+    updateMessage: functions.updateMessage,
+    removeMessage: functions.removeMessage,
+    getMessages: functions.getCurrentMessages,
+    generateId: functions.generateId,
   }
   return useAIChat(store)
 }
