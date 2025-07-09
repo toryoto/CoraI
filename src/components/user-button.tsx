@@ -10,6 +10,7 @@ export function CustomUserButton() {
         appearance={{
           elements: {
             userButtonAvatarBox: 'w-8 h-8',
+            userButtonTrigger: 'focus:shadow-none',
           },
         }}
       />

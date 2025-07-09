@@ -12,7 +12,14 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider>
+    <ClerkProvider
+      appearance={{
+        elements: {
+          userButtonAvatarBox: 'w-8 h-8',
+          userButtonTrigger: 'focus:shadow-none',
+        },
+      }}
+    >
       <html lang="ja">
         <head>
           <link rel="icon" href="/corai-icon.png" />

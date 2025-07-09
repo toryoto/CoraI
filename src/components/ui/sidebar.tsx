@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card'
 import { PlusIcon, MessageSquareIcon, PenIcon, TrashIcon, SearchIcon, MenuIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CustomUserButton } from '@/components/user-button'
+import { useCurrentUser } from '@/hooks/useUser'
 import Image from 'next/image'
 
 export interface Chat {
@@ -51,6 +52,7 @@ export function Sidebar({
   const [editingChat, setEditingChat] = useState<string | null>(null)
   const [editTitle, setEditTitle] = useState('')
   const resizeRef = useRef<HTMLDivElement>(null)
+  const { imageUrl, displayName, initials } = useCurrentUser()
 
   const filteredChats = chats.filter(
     chat =>
@@ -214,29 +216,46 @@ export function Sidebar({
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
-                    {editingChat === chat.id ? (
-                      <Input
-                        value={editTitle}
-                        onChange={e => setEditTitle(e.target.value)}
-                        onBlur={() => handleRename(chat.id)}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter') {
-                            handleRename(chat.id)
-                          }
-                          if (e.key === 'Escape') {
-                            setEditingChat(null)
-                            setEditTitle('')
-                          }
-                        }}
-                        onClick={e => e.stopPropagation()}
-                        className="h-6 text-sm font-medium border-blue-200 focus:ring-blue-500"
-                        autoFocus
-                      />
-                    ) : (
-                      <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200 truncate">
-                        {chat.title}
-                      </h3>
-                    )}
+                    <div className="flex items-center gap-2 mb-1">
+                      {/* ユーザーアイコン */}
+                      <div className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium bg-coral-gradient text-white shadow-sm overflow-hidden flex-shrink-0">
+                        {imageUrl ? (
+                          <Image
+                            src={imageUrl}
+                            alt={displayName}
+                            width={20}
+                            height={20}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span>{initials}</span>
+                        )}
+                      </div>
+                      {/* チャットタイトル */}
+                      {editingChat === chat.id ? (
+                        <Input
+                          value={editTitle}
+                          onChange={e => setEditTitle(e.target.value)}
+                          onBlur={() => handleRename(chat.id)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                              handleRename(chat.id)
+                            }
+                            if (e.key === 'Escape') {
+                              setEditingChat(null)
+                              setEditTitle('')
+                            }
+                          }}
+                          onClick={e => e.stopPropagation()}
+                          className="h-6 text-sm font-medium border-blue-200 focus:ring-blue-500"
+                          autoFocus
+                        />
+                      ) : (
+                        <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200 truncate">
+                          {chat.title}
+                        </h3>
+                      )}
+                    </div>
                     {chat.preview && (
                       <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 truncate">
                         {chat.preview}

@@ -14,6 +14,7 @@ import Image from 'next/image'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { markdownComponents } from '@/components/markdown'
+import { useCurrentUser } from '@/hooks/useUser'
 
 export interface Message {
   id: string
@@ -44,6 +45,7 @@ export function MessageComponent({
 }: MessageProps) {
   const [isHovered, setIsHovered] = useState(false)
   const isUser = message.role === 'user'
+  const { imageUrl, displayName, initials } = useCurrentUser()
 
   const handleCopy = () => {
     if (onCopy) {
@@ -68,13 +70,23 @@ export function MessageComponent({
         {/* Avatar */}
         <div className="flex-shrink-0 mr-4">
           {isUser ? (
-            <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium bg-coral-gradient text-white shadow-md">
-              You
+            <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium bg-coral-gradient text-white shadow-md overflow-hidden">
+              {imageUrl ? (
+                <Image
+                  src={imageUrl}
+                  alt={displayName}
+                  width={32}
+                  height={32}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span>{initials}</span>
+              )}
             </div>
           ) : (
             <div className="w-8 h-8 rounded-full flex items-center justify-center bg-white dark:bg-gray-800 shadow-md border border-blue-100 dark:border-blue-700">
               <Image
-                src="/corai-icon.png"
+                src="/favicon/corai-icon.png"
                 alt="CoraI"
                 width={36}
                 height={36}
@@ -89,7 +101,7 @@ export function MessageComponent({
         <div className="flex-1 min-w-0">
           <div className="flex items-center mb-2">
             <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
-              {isUser ? 'You' : 'CoraI'}
+              {isUser ? displayName : 'CoraI'}
             </span>
             <span className="text-xs text-blue-500 dark:text-blue-400 ml-2">
               {message.timestamp.toLocaleTimeString('ja-JP', {
