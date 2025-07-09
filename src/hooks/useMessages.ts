@@ -15,17 +15,21 @@ export function useMessages(
       const response = await fetch(`/api/chats/${chatId}`)
       const data = await response.json()
       // メインブランチ（parentBranchIdがnull）を取得
-      const mainBranch = data.branches.find((branch: any) => branch.parentBranchId === null)
+      const mainBranch = data.branches.find(
+        (branch: Record<string, unknown>) => branch.parentBranchId === null
+      )
       if (mainBranch) {
-        setMainBranchId(mainBranch.id)
-        const formattedMessages = mainBranch.messages.map((msg: any) => ({
-          id: msg.id,
-          content: msg.content,
-          role: msg.role,
-          timestamp: new Date(msg.createdAt),
-          isTyping: msg.isTyping,
-          branchId: mainBranch.id,
-        }))
+        setMainBranchId(mainBranch.id as string)
+        const formattedMessages = (mainBranch.messages as Record<string, unknown>[]).map(
+          (msg: Record<string, unknown>) => ({
+            id: msg.id as string,
+            content: msg.content as string,
+            role: msg.role as 'user' | 'assistant',
+            timestamp: new Date(msg.createdAt as string),
+            isTyping: msg.isTyping as boolean,
+            branchId: mainBranch.id as string,
+          })
+        )
         setMessages(formattedMessages)
       }
     } catch (error) {

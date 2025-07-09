@@ -11,7 +11,6 @@ import { useChatList } from '@/hooks/useChatList'
 import { useMessages } from '@/hooks/useMessages'
 import { useAIChatForExistingChat } from '@/hooks/useAIChat'
 import { useBranchManager } from '@/hooks/useBranchManager'
-import { Branch } from '@/types/branch'
 
 export default function ChatIdPage() {
   const params = useParams()
@@ -23,7 +22,7 @@ export default function ChatIdPage() {
   const [firstMessageProcessed, setFirstMessageProcessed] = useState(false)
   const mainBranchIdFromUrl = searchParams.get('mainBranchId')
 
-  const { activeChat, selectChat, updateChatPreview, fetchChats } = useChatList()
+  const { activeChat, selectChat, updateChatPreview } = useChatList()
 
   const { messages, fetchMessages, addMessage, updateMessage, removeMessage, mainBranchId } =
     useMessages(chatId, updateChatPreview, mainBranchIdFromUrl || undefined)

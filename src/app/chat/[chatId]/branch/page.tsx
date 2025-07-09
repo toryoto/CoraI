@@ -2,17 +2,16 @@
 
 import React from 'react'
 import { useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { BranchTreeView } from '@/components/branch/branch-tree-view'
 import { useChatList } from '@/hooks/useChatList'
 import { useBranchManager } from '@/hooks/useBranchManager'
 
 export default function BranchPage() {
   const params = useParams()
-  const router = useRouter()
   const chatId = params.chatId as string
 
-  const { activeChat, selectChat, fetchChats } = useChatList()
+  const { activeChat, selectChat } = useChatList()
 
   // Initialize branch manager for this chat
   const branchManager = useBranchManager({

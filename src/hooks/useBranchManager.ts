@@ -1,13 +1,14 @@
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Branch,
   BranchMessage,
   BranchCreationConfig,
   BranchState,
-  DEFAULT_BRANCH_CONFIG,
   DEFAULT_BRANCH_COLORS,
 } from '@/types/branch'
+
+type MessageRole = 'user' | 'assistant' | 'system'
 import { ChatAPI, type ChatMessage } from '@/lib/chat-client'
 import { apiRequest } from '@/lib/utils'
 import { useBranchCreationModal } from '@/hooks/useBranchCreationModal'
@@ -83,28 +84,28 @@ const transformMessageUpdates = (
 }
 
 // データ変換用のユーティリティ関数
-const formatBranchData = (branch: any): Branch => ({
-  id: branch.id,
-  chatId: branch.chatId,
-  parentBranchId: branch.parentBranchId,
-  name: branch.name,
-  color: branch.color || '#3b82f6',
+const formatBranchData = (branch: Record<string, unknown>): Branch => ({
+  id: branch.id as string,
+  chatId: branch.chatId as string,
+  parentBranchId: branch.parentBranchId as string | null,
+  name: branch.name as string,
+  color: (branch.color as string) || '#3b82f6',
   isActive: false,
-  createdAt: new Date(branch.createdAt),
-  updatedAt: new Date(branch.updatedAt),
-  metadata: branch.metadata || {},
+  createdAt: new Date(branch.createdAt as string),
+  updatedAt: new Date(branch.updatedAt as string),
+  metadata: (branch.metadata as Record<string, unknown>) || {},
 })
 
-const formatMessageData = (msg: any): BranchMessage => ({
-  id: msg.id,
-  branchId: msg.branchId,
-  parentMessageId: msg.parentMessageId,
-  content: msg.content,
-  role: msg.role,
-  timestamp: new Date(msg.createdAt),
+const formatMessageData = (msg: Record<string, unknown>): BranchMessage => ({
+  id: msg.id as string,
+  branchId: msg.branchId as string,
+  parentMessageId: msg.parentMessageId as string | null,
+  content: msg.content as string,
+  role: msg.role as MessageRole,
+  timestamp: new Date(msg.createdAt as string),
   metadata: {
-    ...(msg.metadata || {}),
-    isTyping: msg.metadata?.isTyping ?? false,
+    ...((msg.metadata as Record<string, unknown>) || {}),
+    isTyping: (msg.metadata as Record<string, unknown>)?.isTyping ?? false,
   },
 })
 
@@ -126,7 +127,6 @@ export const useBranchManager = ({
     openBranchCreationModal,
     closeBranchCreationModal,
     updateBranchCreationConfig,
-    setBranchCreationModal,
   } = useBranchCreationModal()
 
   const createBranchMessage = (
@@ -155,82 +155,115 @@ export const useBranchManager = ({
     []
   )
 
-  const generateAIResponse = useCallback(async (branchId: string, userQuestion: string) => {
-    try {
-      const savedAiMessage = await apiRequest(`/api/branches/${branchId}/messages`, {
-        method: 'POST',
-        body: JSON.stringify({
-          content: '',
-          role: 'assistant',
-          modelUsed: 'gpt-4o-mini',
-          isTyping: true,
-        }),
-      })
+  const generateAIResponse = useCallback(
+    async (branchId: string, userQuestion: string) => {
+      try {
+        const savedAiMessage = await apiRequest(`/api/branches/${branchId}/messages`, {
+          method: 'POST',
+          body: JSON.stringify({
+            content: '',
+            role: 'assistant',
+            modelUsed: 'gpt-4o-mini',
+            isTyping: true,
+          }),
+        })
 
-      const aiMessageId = savedAiMessage.id
-      const aiMessage = createBranchMessage(
-        { branchId, role: 'assistant', content: '', metadata: { isTyping: true } },
-        savedAiMessage
-      )
+        const aiMessageId = savedAiMessage.id
+        const aiMessage = createBranchMessage(
+          { branchId, role: 'assistant', content: '', metadata: { isTyping: true } },
+          savedAiMessage
+        )
 
-      setMessages(prev => ({
-        ...prev,
-        [branchId]: [...(prev[branchId] || []), aiMessage],
-      }))
+        setMessages(prev => ({
+          ...prev,
+          [branchId]: [...(prev[branchId] || []), aiMessage],
+        }))
 
-      const apiMessages: ChatMessage[] = [
-        {
-          role: 'user',
-          content: userQuestion,
-        },
-      ]
+        const apiMessages: ChatMessage[] = [
+          {
+            role: 'user',
+            content: userQuestion,
+          },
+        ]
 
-      let accumulatedContent = ''
+        let accumulatedContent = ''
 
-      await ChatAPI.sendMessage(apiMessages, {
-        stream: true,
-        onStream: (streamContent: string) => {
-          accumulatedContent += streamContent
+        await ChatAPI.sendMessage(apiMessages, {
+          stream: true,
+          onStream: (streamContent: string) => {
+            accumulatedContent += streamContent
 
-          setMessages(prev => ({
-            ...prev,
-            [branchId]:
-              prev[branchId]?.map(msg =>
-                msg.id === aiMessageId
-                  ? { ...msg, content: accumulatedContent, metadata: { isTyping: true } }
-                  : msg
-              ) || [],
-          }))
+            setMessages(prev => ({
+              ...prev,
+              [branchId]:
+                prev[branchId]?.map(msg =>
+                  msg.id === aiMessageId
+                    ? { ...msg, content: accumulatedContent, metadata: { isTyping: true } }
+                    : msg
+                ) || [],
+            }))
 
-          if (!window.streamingUpdateTimeout) {
-            window.streamingUpdateTimeout = setTimeout(() => {
-              apiRequest(`/api/messages/${aiMessageId}`, {
-                method: 'PATCH',
-                body: JSON.stringify({
-                  content: accumulatedContent,
-                  isTyping: true,
-                }),
-              }).catch(error => {
-                console.error('Failed to update streaming content in DB:', error)
-              })
+            if (!window.streamingUpdateTimeout) {
+              window.streamingUpdateTimeout = setTimeout(() => {
+                apiRequest(`/api/messages/${aiMessageId}`, {
+                  method: 'PATCH',
+                  body: JSON.stringify({
+                    content: accumulatedContent,
+                    isTyping: true,
+                  }),
+                }).catch(error => {
+                  console.error('Failed to update streaming content in DB:', error)
+                })
+                window.streamingUpdateTimeout = null
+              }, 500)
+            }
+          },
+          onComplete: async (fullContent: string) => {
+            const finalContent = fullContent || accumulatedContent
+
+            if (window.streamingUpdateTimeout) {
+              clearTimeout(window.streamingUpdateTimeout)
               window.streamingUpdateTimeout = null
-            }, 500)
-          }
-        },
-        onComplete: async (fullContent: string) => {
-          const finalContent = fullContent || accumulatedContent
+            }
 
-          if (window.streamingUpdateTimeout) {
-            clearTimeout(window.streamingUpdateTimeout)
-            window.streamingUpdateTimeout = null
-          }
+            if (finalContent) {
+              try {
+                await apiRequest(`/api/messages/${aiMessageId}`, {
+                  method: 'PATCH',
+                  body: JSON.stringify({
+                    content: finalContent,
+                    isTyping: false,
+                  }),
+                })
 
-          if (finalContent) {
+                setMessages(prev => ({
+                  ...prev,
+                  [branchId]:
+                    prev[branchId]?.map(msg =>
+                      msg.id === aiMessageId
+                        ? { ...msg, content: finalContent, metadata: { isTyping: false } }
+                        : msg
+                    ) || [],
+                }))
+              } catch (error) {
+                console.error('Failed to finalize AI message:', error)
+              }
+            }
+          },
+          onError: async (error: string) => {
+            console.error('AI response error for branch:', branchId, error)
+            const errorContent = `エラーが発生しました: ${error}`
+
+            if (window.streamingUpdateTimeout) {
+              clearTimeout(window.streamingUpdateTimeout)
+              window.streamingUpdateTimeout = null
+            }
+
             try {
               await apiRequest(`/api/messages/${aiMessageId}`, {
                 method: 'PATCH',
                 body: JSON.stringify({
-                  content: finalContent,
+                  content: errorContent,
                   isTyping: false,
                 }),
               })
@@ -240,29 +273,36 @@ export const useBranchManager = ({
                 [branchId]:
                   prev[branchId]?.map(msg =>
                     msg.id === aiMessageId
-                      ? { ...msg, content: finalContent, metadata: { isTyping: false } }
+                      ? { ...msg, content: errorContent, metadata: { isTyping: false } }
                       : msg
                   ) || [],
               }))
-            } catch (error) {
-              console.error('Failed to finalize AI message:', error)
+            } catch (updateError) {
+              console.error('Failed to update error message:', updateError)
+              setMessages(prev => ({
+                ...prev,
+                [branchId]:
+                  prev[branchId]?.map(msg =>
+                    msg.id === aiMessageId
+                      ? { ...msg, content: errorContent, metadata: { isTyping: false } }
+                      : msg
+                  ) || [],
+              }))
             }
-          }
-        },
-        onError: async (error: string) => {
-          console.error('AI response error for branch:', branchId, error)
-          const errorContent = `エラーが発生しました: ${error}`
+          },
+        })
+      } catch (error) {
+        console.error('Failed to generate AI response for branch:', branchId, error)
+        try {
+          const existingMessages = messages[branchId] || []
+          const typingAI = existingMessages.find(
+            msg => msg.role === 'assistant' && msg.metadata?.isTyping
+          )
 
-          if (window.streamingUpdateTimeout) {
-            clearTimeout(window.streamingUpdateTimeout)
-            window.streamingUpdateTimeout = null
-          }
-
-          try {
-            await apiRequest(`/api/messages/${aiMessageId}`, {
+          if (typingAI) {
+            await apiRequest(`/api/messages/${typingAI.id}`, {
               method: 'PATCH',
               body: JSON.stringify({
-                content: errorContent,
                 isTyping: false,
               }),
             })
@@ -271,56 +311,19 @@ export const useBranchManager = ({
               ...prev,
               [branchId]:
                 prev[branchId]?.map(msg =>
-                  msg.id === aiMessageId
-                    ? { ...msg, content: errorContent, metadata: { isTyping: false } }
-                    : msg
-                ) || [],
-            }))
-          } catch (updateError) {
-            console.error('Failed to update error message:', updateError)
-            setMessages(prev => ({
-              ...prev,
-              [branchId]:
-                prev[branchId]?.map(msg =>
-                  msg.id === aiMessageId
-                    ? { ...msg, content: errorContent, metadata: { isTyping: false } }
+                  msg.id === typingAI.id
+                    ? { ...msg, metadata: { ...msg.metadata, isTyping: false } }
                     : msg
                 ) || [],
             }))
           }
-        },
-      })
-    } catch (error) {
-      console.error('Failed to generate AI response for branch:', branchId, error)
-      try {
-        const existingMessages = messages[branchId] || []
-        const typingAI = existingMessages.find(
-          msg => msg.role === 'assistant' && msg.metadata?.isTyping
-        )
-
-        if (typingAI) {
-          await apiRequest(`/api/messages/${typingAI.id}`, {
-            method: 'PATCH',
-            body: JSON.stringify({
-              isTyping: false,
-            }),
-          })
-
-          setMessages(prev => ({
-            ...prev,
-            [branchId]:
-              prev[branchId]?.map(msg =>
-                msg.id === typingAI.id
-                  ? { ...msg, metadata: { ...msg.metadata, isTyping: false } }
-                  : msg
-              ) || [],
-          }))
+        } catch (cleanupError) {
+          console.error('Failed to cleanup typing state:', cleanupError)
         }
-      } catch (cleanupError) {
-        console.error('Failed to cleanup typing state:', cleanupError)
       }
-    }
-  }, [])
+    },
+    [messages]
+  )
 
   function getBaseBranch(
     branches: Branch[],
@@ -577,8 +580,10 @@ export const useBranchManager = ({
       const formattedBranches: Branch[] = branchesData.map(formatBranchData)
 
       const messagesData: Record<string, BranchMessage[]> = {}
-      branchesData.forEach((branch: any) => {
-        messagesData[branch.id] = branch.messages.map(formatMessageData)
+      branchesData.forEach((branch: Record<string, unknown>) => {
+        messagesData[branch.id as string] = (branch.messages as Record<string, unknown>[]).map(
+          formatMessageData
+        )
       })
 
       setBranches(formattedBranches)
