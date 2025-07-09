@@ -14,14 +14,7 @@ export default function BranchPage() {
   const router = useRouter()
   const chatId = params.chatId as string
 
-  const {
-    chats,
-    activeChat,
-    selectChat,
-    deleteChat,
-    renameChat,
-    fetchChats,
-  } = useChatList()
+  const { chats, activeChat, selectChat, deleteChat, renameChat, fetchChats } = useChatList()
 
   const { sidebarCollapsed, setSidebarCollapsed } = useSidebar()
 

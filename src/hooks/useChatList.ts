@@ -64,22 +64,25 @@ export function useChatList() {
   }, [])
 
   // チャットを削除
-  const deleteChat = useCallback(async (chatId: string) => {
-    try {
-      await fetch(`/api/chats/${chatId}`, { method: 'DELETE' })
-      setChats(prev => prev.filter(chat => chat.id !== chatId))
-      if (activeChat === chatId) {
-        const remainingChats = chats.filter(chat => chat.id !== chatId)
-        if (remainingChats.length > 0) {
-          setActiveChat(remainingChats[0].id)
-        } else {
-          setActiveChat(undefined)
+  const deleteChat = useCallback(
+    async (chatId: string) => {
+      try {
+        await fetch(`/api/chats/${chatId}`, { method: 'DELETE' })
+        setChats(prev => prev.filter(chat => chat.id !== chatId))
+        if (activeChat === chatId) {
+          const remainingChats = chats.filter(chat => chat.id !== chatId)
+          if (remainingChats.length > 0) {
+            setActiveChat(remainingChats[0].id)
+          } else {
+            setActiveChat(undefined)
+          }
         }
+      } catch (error) {
+        console.error('Failed to delete chat:', error)
       }
-    } catch (error) {
-      console.error('Failed to delete chat:', error)
-    }
-  }, [activeChat, chats])
+    },
+    [activeChat, chats]
+  )
 
   // チャットをリネーム
   const renameChat = useCallback(async (chatId: string, newTitle: string) => {
@@ -131,4 +134,4 @@ export function useChatList() {
     updateChatPreview,
     setActiveChat,
   }
-} 
+}

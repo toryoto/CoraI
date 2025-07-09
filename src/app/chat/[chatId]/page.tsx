@@ -25,24 +25,11 @@ export default function ChatIdPage() {
   const [firstMessageProcessed, setFirstMessageProcessed] = useState(false)
   const mainBranchIdFromUrl = searchParams.get('mainBranchId')
 
-  const {
-    chats,
-    activeChat,
-    selectChat,
-    deleteChat,
-    renameChat,
-    updateChatPreview,
-    fetchChats,
-  } = useChatList()
+  const { chats, activeChat, selectChat, deleteChat, renameChat, updateChatPreview, fetchChats } =
+    useChatList()
 
-  const {
-    messages,
-    fetchMessages,
-    addMessage,
-    updateMessage,
-    removeMessage,
-    mainBranchId,
-  } = useMessages(chatId, updateChatPreview, mainBranchIdFromUrl || undefined)
+  const { messages, fetchMessages, addMessage, updateMessage, removeMessage, mainBranchId } =
+    useMessages(chatId, updateChatPreview, mainBranchIdFromUrl || undefined)
 
   const { sidebarCollapsed, setSidebarCollapsed } = useSidebar()
 
@@ -111,7 +98,7 @@ export default function ChatIdPage() {
           await fetchMessages()
         }
         if (mainBranchId) {
-          setFirstMessageProcessed(true)          
+          setFirstMessageProcessed(true)
           await sendMessage(firstMessage)
           setTimeout(() => {
             router.replace(`/chat/${chatId}`)
@@ -122,7 +109,16 @@ export default function ChatIdPage() {
       }
     }
     trySendFirstMessage()
-  }, [firstMessage, activeChat, chatId, firstMessageProcessed, sendMessage, router, mainBranchId, fetchMessages])
+  }, [
+    firstMessage,
+    activeChat,
+    chatId,
+    firstMessageProcessed,
+    sendMessage,
+    router,
+    mainBranchId,
+    fetchMessages,
+  ])
 
   // 初回ロード時にチャット一覧を取得
   useEffect(() => {

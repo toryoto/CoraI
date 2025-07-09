@@ -128,7 +128,7 @@ export function useAIChat(store: MessageStore) {
 export function useAIChatForNewChat() {
   const [tempMessages, setTempMessages] = useState<Message[]>([])
   const store: MessageStore = {
-    addMessage: async (message) => {
+    addMessage: async message => {
       setTempMessages(prev => [...prev, message])
       return message.id
     },
@@ -137,7 +137,7 @@ export function useAIChatForNewChat() {
         prev.map(msg => (msg.id === messageId ? { ...msg, ...updates } : msg))
       )
     },
-    removeMessage: (messageId) => {
+    removeMessage: messageId => {
       setTempMessages(prev => prev.filter(msg => msg.id !== messageId))
     },
     getMessages: () => tempMessages,

@@ -16,14 +16,7 @@ export default function NewChatPage() {
   const [isCreatingChat, setIsCreatingChat] = useState(false)
   const { tempMessages, isGenerating, stopGeneration } = useAIChatForNewChat()
 
-  const {
-    chats,
-    createNewChat,
-    selectChat,
-    deleteChat,
-    renameChat,
-    fetchChats,
-  } = useChatList()
+  const { chats, createNewChat, selectChat, deleteChat, renameChat, fetchChats } = useChatList()
 
   const { sidebarCollapsed, setSidebarCollapsed } = useSidebar()
 
@@ -40,7 +33,9 @@ export default function NewChatPage() {
 
       if (newChatData) {
         const { chatId, mainBranchId } = newChatData
-        router.push(`/chat/${chatId}?mainBranchId=${mainBranchId}&firstMessage=${encodeURIComponent(content)}`)
+        router.push(
+          `/chat/${chatId}?mainBranchId=${mainBranchId}&firstMessage=${encodeURIComponent(content)}`
+        )
       }
 
       setIsCreatingChat(false)

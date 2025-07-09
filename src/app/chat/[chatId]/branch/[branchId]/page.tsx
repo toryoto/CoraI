@@ -31,21 +31,14 @@ export default function BranchChatPage() {
     return branchMessages.map(msg => ({
       id: msg.id,
       content: msg.content,
-      role: msg.role as "user" | "assistant",
+      role: msg.role as 'user' | 'assistant',
       timestamp: msg.timestamp,
       isTyping: Boolean(msg.metadata?.isTyping),
       branchId: msg.branchId,
     }))
   }, [branchManager.messages, branchId])
 
-  const {
-    chats,
-    activeChat,
-    selectChat,
-    deleteChat,
-    renameChat,
-    fetchChats
-  } = useChatList()
+  const { chats, activeChat, selectChat, deleteChat, renameChat, fetchChats } = useChatList()
 
   const { sidebarCollapsed, setSidebarCollapsed } = useSidebar()
 
@@ -77,7 +70,7 @@ export default function BranchChatPage() {
 
   // AIチャット機能をbranchManagerと統合
   const { isGenerating, sendMessage, stopGeneration } = useAIChatForExistingChat(branchId, {
-    addMessage: async (message) => {
+    addMessage: async message => {
       return branchManager.addMessageToBranchWithDB(branchId, {
         branchId,
         parentMessageId: null,
@@ -89,7 +82,7 @@ export default function BranchChatPage() {
     updateMessage: (messageId, updates) => {
       branchManager.updateBranchMessage(messageId, updates)
     },
-    removeMessage: (messageId) => {
+    removeMessage: messageId => {
       branchManager.removeBranchMessage(messageId)
     },
     getCurrentMessages: () => messages,
@@ -112,8 +105,6 @@ export default function BranchChatPage() {
       router.push(`/chat/${chatId}/branch`)
     }
   }
-
-
 
   const handleSendMessage = async (content: string) => {
     sendMessage(content)
