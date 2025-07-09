@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { MessageComponent, type Message } from './message'
 import { SendIcon, StopCircleIcon, GitBranch, Network } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { MarkdownEditor } from '@/components/markdown'
 
 export interface ChatInterfaceProps {
   messages: Message[]
@@ -27,16 +27,14 @@ export function ChatInterface({
   onSendMessage,
   onStopGeneration,
   isGenerating = false,
-  placeholder = 'メッセージを入力してください...',
+  placeholder = 'マークダウンでメッセージを入力してください...',
   disabled = false,
   onBranch,
   currentBranch,
   onViewBranches,
 }: ChatInterfaceProps) {
   const [input, setInput] = useState('')
-  const [isComposing, setIsComposing] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -50,27 +48,14 @@ export function ChatInterface({
     if (input.trim() && !disabled && !isGenerating) {
       await onSendMessage(input.trim())
       setInput('')
-      // Reset textarea height
-      if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto'
-      }
     }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey && !isComposing) {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSend()
     }
-  }
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInput(e.target.value)
-
-    // Auto-resize textarea
-    const textarea = e.target
-    textarea.style.height = 'auto'
-    textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px'
   }
 
   const handleCopy = (content: string) => {
@@ -189,26 +174,13 @@ export function ChatInterface({
         <div className="max-w-4xl mx-auto">
           <div className="relative flex items-end space-x-2">
             <div className="flex-1">
-              <textarea
-                ref={textareaRef}
+              <MarkdownEditor
                 value={input}
-                onChange={handleInputChange}
+                onChange={setInput}
                 onKeyDown={handleKeyDown}
-                onCompositionStart={() => setIsComposing(true)}
-                onCompositionEnd={() => setIsComposing(false)}
                 placeholder={placeholder}
                 disabled={disabled || isGenerating}
-                className={cn(
-                  'w-full px-4 py-3 pr-12 border border-blue-200 dark:border-blue-700 rounded-xl',
-                  'bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100',
-                  'placeholder-gray-500 dark:placeholder-gray-400',
-                  'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
-                  'disabled:opacity-50 disabled:cursor-not-allowed',
-                  'resize-none overflow-hidden',
-                  'min-h-[48px] max-h-[200px]',
-                  'shadow-sm hover:shadow-md transition-shadow'
-                )}
-                rows={1}
+                className="shadow-sm hover:shadow-md transition-shadow"
               />
             </div>
             <Button
@@ -221,7 +193,7 @@ export function ChatInterface({
             </Button>
           </div>
           <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">
-            Enterで送信、Shift+Enterで改行
+            Enterで送信、Shift+Enterで改行、ツールバーでマークダウン編集
           </div>
         </div>
       </div>

@@ -67,7 +67,7 @@ const transformMessageUpdates = (
   updates: Partial<BranchMessage> & { isTyping?: boolean; isStreaming?: boolean }
 ): Partial<BranchMessage> => {
   const { isTyping, isStreaming, ...restUpdates } = updates
-  
+
   if (isTyping === undefined && isStreaming === undefined) {
     return restUpdates
   }
@@ -294,10 +294,10 @@ export const useBranchManager = ({
       console.error('Failed to generate AI response for branch:', branchId, error)
       try {
         const existingMessages = messages[branchId] || []
-        const typingAI = existingMessages.find(msg => 
-          msg.role === 'assistant' && msg.metadata?.isTyping
+        const typingAI = existingMessages.find(
+          msg => msg.role === 'assistant' && msg.metadata?.isTyping
         )
-        
+
         if (typingAI) {
           await apiRequest(`/api/messages/${typingAI.id}`, {
             method: 'PATCH',
@@ -305,7 +305,7 @@ export const useBranchManager = ({
               isTyping: false,
             }),
           })
-          
+
           setMessages(prev => ({
             ...prev,
             [branchId]:
@@ -573,14 +573,14 @@ export const useBranchManager = ({
   const fetchBranches = useCallback(async () => {
     try {
       const branchesData = await apiRequest(`/api/chats/${chatId}/branches`)
-      
+
       const formattedBranches: Branch[] = branchesData.map(formatBranchData)
-      
+
       const messagesData: Record<string, BranchMessage[]> = {}
       branchesData.forEach((branch: any) => {
         messagesData[branch.id] = branch.messages.map(formatMessageData)
       })
-      
+
       setBranches(formattedBranches)
       setMessages(messagesData)
     } catch (error) {
@@ -596,7 +596,7 @@ export const useBranchManager = ({
       setMessages(prev => {
         const localMessages = prev[branchId] || []
         const dbMessages = formattedMessages
-        
+
         const mergedMessages = dbMessages.map((dbMsg: BranchMessage) => {
           const localMsg = localMessages.find(local => local.id === dbMsg.id)
           if (localMsg && localMsg.metadata?.isTyping && !dbMsg.metadata?.isTyping) {
@@ -605,8 +605,9 @@ export const useBranchManager = ({
           return localMsg || dbMsg
         })
 
-        const localOnlyMessages = localMessages.filter(local => 
-          local.metadata?.isTyping && !dbMessages.find((db: BranchMessage) => db.id === local.id)
+        const localOnlyMessages = localMessages.filter(
+          local =>
+            local.metadata?.isTyping && !dbMessages.find((db: BranchMessage) => db.id === local.id)
         )
 
         return {
@@ -653,7 +654,10 @@ export const useBranchManager = ({
   )
 
   const updateBranchMessage = useCallback(
-    async (messageId: string, updates: Partial<BranchMessage> & { isTyping?: boolean; isStreaming?: boolean }) => {
+    async (
+      messageId: string,
+      updates: Partial<BranchMessage> & { isTyping?: boolean; isStreaming?: boolean }
+    ) => {
       try {
         const transformedUpdates = transformMessageUpdates(updates)
 
@@ -666,11 +670,9 @@ export const useBranchManager = ({
           ...Object.fromEntries(
             Object.entries(prev).map(([branchId, messages]) => [
               branchId,
-              messages.map(msg =>
-                msg.id === messageId ? { ...msg, ...transformedUpdates } : msg
-              )
+              messages.map(msg => (msg.id === messageId ? { ...msg, ...transformedUpdates } : msg)),
             ])
-          )
+          ),
         }))
       } catch (error) {
         console.error('Failed to update branch message:', error)
@@ -687,9 +689,9 @@ export const useBranchManager = ({
         ...Object.fromEntries(
           Object.entries(prev).map(([branchId, messages]) => [
             branchId,
-            messages.filter(msg => msg.id !== messageId)
+            messages.filter(msg => msg.id !== messageId),
           ])
-        )
+        ),
       }))
     } catch (error) {
       console.error('Failed to remove branch message:', error)

@@ -124,7 +124,11 @@ export function MessageComponent({
             ) : (
               <div className="text-gray-800 dark:text-gray-200">
                 {isUser ? (
-                  <div className="whitespace-pre-wrap">{message.content}</div>
+                  <div className="markdown-content">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                      {message.content}
+                    </ReactMarkdown>
+                  </div>
                 ) : (
                   <div className="markdown-content">
                     <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>

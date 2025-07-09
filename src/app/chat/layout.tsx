@@ -10,14 +10,14 @@ import { useSidebar } from '@/hooks/useSidebar'
 export default function ChatLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const { chats, activeChat, selectChat, deleteChat, renameChat, fetchChats } = useChatList()
-  const { 
-    sidebarCollapsed, 
-    sidebarWidth, 
+  const {
+    sidebarCollapsed,
+    sidebarWidth,
     isResizing,
-    toggleSidebar, 
-    startResize, 
-    stopResize, 
-    updateWidth 
+    toggleSidebar,
+    startResize,
+    stopResize,
+    updateWidth,
   } = useSidebar()
 
   useEffect(() => {
@@ -49,10 +49,7 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
 
       <div className="flex-1 flex flex-col relative">
         {/* サイドバーが閉じている時にオーバーレイボタンを表示 */}
-        <SidebarOverlay 
-          isCollapsed={sidebarCollapsed} 
-          onToggleCollapsed={toggleSidebar} 
-        />
+        <SidebarOverlay isCollapsed={sidebarCollapsed} onToggleCollapsed={toggleSidebar} />
         {children}
       </div>
     </div>
