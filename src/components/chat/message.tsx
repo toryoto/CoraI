@@ -11,6 +11,9 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Image from 'next/image'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import { markdownComponents } from '@/components/markdown'
 
 export interface Message {
   id: string
@@ -107,8 +110,16 @@ export function MessageComponent({
                 <span className="text-sm text-blue-500 ml-2">入力中...</span>
               </div>
             ) : (
-              <div className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
-                {message.content}
+              <div className="text-gray-800 dark:text-gray-200">
+                {isUser ? (
+                  <div className="whitespace-pre-wrap">{message.content}</div>
+                ) : (
+                  <div className="markdown-content">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                      {message.content}
+                    </ReactMarkdown>
+                  </div>
+                )}
               </div>
             )}
           </div>
