@@ -81,19 +81,19 @@ export function ChatInterface({
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex-shrink-0 p-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
+      <div className="flex-shrink-0 p-4 bg-gradient-to-r from-blue-50 via-cyan-50 to-teal-50 border-b border-blue-100 dark:border-blue-800">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div>
-              <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              <h1 className="text-lg font-semibold text-coral-gradient">
                 CoraI
                 {currentBranch && (
-                  <span className="ml-2 text-sm font-normal text-gray-500">
+                  <span className="ml-2 text-sm font-normal text-gray-600 dark:text-gray-400">
                     • {currentBranch.name}
                   </span>
                 )}
               </h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 {currentBranch ? (
                   <span className="flex items-center gap-1">
                     <GitBranch className="h-3 w-3" />
@@ -106,7 +106,7 @@ export function ChatInterface({
             </div>
             {currentBranch && (
               <div
-                className="w-3 h-3 rounded-full"
+                className="w-3 h-3 rounded-full shadow-sm"
                 style={{ backgroundColor: currentBranch.color }}
               />
             )}
@@ -117,7 +117,7 @@ export function ChatInterface({
                 variant="outline"
                 size="sm"
                 onClick={onViewBranches}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300"
               >
                 <Network className="h-4 w-4" />
                 ツリービュー
@@ -128,7 +128,7 @@ export function ChatInterface({
                 variant="outline"
                 size="sm"
                 onClick={onStopGeneration}
-                className="text-red-600 hover:text-red-700"
+                className="text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50"
               >
                 <StopCircleIcon className="h-4 w-4 mr-1" />
                 停止
@@ -144,26 +144,26 @@ export function ChatInterface({
           <div className="flex items-center justify-center h-full">
             <div className="text-center max-w-md mx-auto px-4">
               <div className="text-4xl mb-4">🤖</div>
-              <h2 className="text-xl font-medium text-gray-900 dark:text-gray-100 mb-2">
+              <h2 className="text-xl font-medium bg-gradient-to-r from-blue-700 to-teal-600 bg-clip-text text-transparent mb-2">
                 CoraIへようこそ
               </h2>
-              <p className="text-gray-500 dark:text-gray-400 mb-6">
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
                 複数の観点を並行して考えることで、より深い洞察を得ることができます。
               </p>
               <div className="grid grid-cols-1 gap-3 text-sm">
-                <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg text-left">
-                  <div className="font-medium text-gray-900 dark:text-gray-100 mb-1">
+                <div className="p-3 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950 dark:to-cyan-950 rounded-lg text-left border border-blue-100 dark:border-blue-800">
+                  <div className="font-medium text-blue-800 dark:text-blue-200 mb-1">
                     例: ビジネス戦略の検討
                   </div>
-                  <div className="text-gray-600 dark:text-gray-400">
+                  <div className="text-blue-600 dark:text-blue-300">
                     市場分析、競合分析、リスク評価を同時に進める
                   </div>
                 </div>
-                <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg text-left">
-                  <div className="font-medium text-gray-900 dark:text-gray-100 mb-1">
+                <div className="p-3 bg-gradient-to-r from-teal-50 to-green-50 dark:from-teal-950 dark:to-green-950 rounded-lg text-left border border-teal-100 dark:border-teal-800">
+                  <div className="font-medium text-teal-800 dark:text-teal-200 mb-1">
                     例: 研究調査
                   </div>
-                  <div className="text-gray-600 dark:text-gray-400">
+                  <div className="text-teal-600 dark:text-teal-300">
                     異なる仮説を同時に検討し、総合的な結論を導く
                   </div>
                 </div>
@@ -185,7 +185,7 @@ export function ChatInterface({
         )}
       </div>
 
-      <div className="flex-shrink-0 p-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
+      <div className="flex-shrink-0 p-4 bg-gradient-to-r from-blue-50/50 via-cyan-50/50 to-teal-50/50 border-t border-blue-100 dark:border-blue-800">
         <div className="max-w-4xl mx-auto">
           <div className="relative flex items-end space-x-2">
             <div className="flex-1">
@@ -199,13 +199,14 @@ export function ChatInterface({
                 placeholder={placeholder}
                 disabled={disabled || isGenerating}
                 className={cn(
-                  'w-full px-4 py-3 pr-12 border border-gray-300 dark:border-gray-600 rounded-xl',
+                  'w-full px-4 py-3 pr-12 border border-blue-200 dark:border-blue-700 rounded-xl',
                   'bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100',
                   'placeholder-gray-500 dark:placeholder-gray-400',
                   'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
                   'disabled:opacity-50 disabled:cursor-not-allowed',
                   'resize-none overflow-hidden',
-                  'min-h-[48px] max-h-[200px]'
+                  'min-h-[48px] max-h-[200px]',
+                  'shadow-sm hover:shadow-md transition-shadow'
                 )}
                 rows={1}
               />
@@ -214,7 +215,7 @@ export function ChatInterface({
               onClick={handleSend}
               disabled={!input.trim() || disabled || isGenerating}
               size="icon"
-              className="h-12 w-12 rounded-xl"
+              className="h-12 w-12 rounded-xl bg-coral-gradient hover:opacity-90 text-white shadow-lg hover:shadow-xl transition-all"
             >
               <SendIcon className="h-4 w-4" />
             </Button>

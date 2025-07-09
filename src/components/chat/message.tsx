@@ -54,7 +54,9 @@ export function MessageComponent({
     <div
       className={cn(
         'group flex w-full py-4 px-6 transition-colors',
-        isUser ? 'bg-transparent' : 'bg-gray-50 dark:bg-gray-900/50'
+        isUser
+          ? 'bg-transparent'
+          : 'bg-gradient-to-r from-blue-50/30 via-cyan-50/30 to-teal-50/30 dark:from-blue-950/30 dark:via-cyan-950/30 dark:to-teal-950/30'
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -63,11 +65,11 @@ export function MessageComponent({
         {/* Avatar */}
         <div className="flex-shrink-0 mr-4">
           {isUser ? (
-            <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium bg-blue-500 text-white">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium bg-coral-gradient text-white shadow-md">
               You
             </div>
           ) : (
-            <div className="w-8 h-8 rounded-full flex items-center justify-center bg-white dark:bg-gray-800">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center bg-white dark:bg-gray-800 shadow-md border border-blue-100 dark:border-blue-700">
               <Image
                 src="/corai-icon.png"
                 alt="CoraI"
@@ -83,10 +85,10 @@ export function MessageComponent({
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center mb-2">
-            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-              {isUser ? 'You' : 'CoRaI'}
+            <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+              {isUser ? 'You' : 'CoraI'}
             </span>
-            <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+            <span className="text-xs text-blue-500 dark:text-blue-400 ml-2">
               {message.timestamp.toLocaleTimeString('ja-JP', {
                 hour: '2-digit',
                 minute: '2-digit',
@@ -98,11 +100,11 @@ export function MessageComponent({
             {message.isTyping ? (
               <div className="flex items-center space-x-1">
                 <div className="flex space-x-1">
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                  <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                  <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
                 </div>
-                <span className="text-sm text-gray-500 ml-2">入力中...</span>
+                <span className="text-sm text-blue-500 ml-2">入力中...</span>
               </div>
             ) : (
               <div className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
@@ -119,7 +121,12 @@ export function MessageComponent({
                 isHovered ? 'opacity-100' : 'opacity-0'
               )}
             >
-              <Button variant="ghost" size="sm" onClick={handleCopy} className="h-8 px-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCopy}
+                className="h-8 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900"
+              >
                 <CopyIcon className="h-3 w-3 mr-1" />
                 コピー
               </Button>
@@ -129,7 +136,7 @@ export function MessageComponent({
                   variant="ghost"
                   size="sm"
                   onClick={() => onBranch(message.id)}
-                  className="h-8 px-2"
+                  className="h-8 px-2 text-teal-600 hover:text-teal-700 hover:bg-teal-100 dark:hover:bg-teal-900"
                 >
                   <GitBranchIcon className="h-3 w-3 mr-1" />
                   分岐
@@ -142,7 +149,7 @@ export function MessageComponent({
                     variant="ghost"
                     size="sm"
                     onClick={() => onLike?.(message.id)}
-                    className="h-8 px-2"
+                    className="h-8 px-2 text-green-600 hover:text-green-700 hover:bg-green-100 dark:hover:bg-green-900"
                   >
                     <ThumbsUpIcon className="h-3 w-3" />
                   </Button>
@@ -150,14 +157,18 @@ export function MessageComponent({
                     variant="ghost"
                     size="sm"
                     onClick={() => onDislike?.(message.id)}
-                    className="h-8 px-2"
+                    className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900"
                   >
                     <ThumbsDownIcon className="h-3 w-3" />
                   </Button>
                 </>
               )}
 
-              <Button variant="ghost" size="sm" className="h-8 px-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
                 <MoreHorizontalIcon className="h-3 w-3" />
               </Button>
             </div>
