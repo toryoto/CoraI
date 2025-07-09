@@ -17,7 +17,8 @@ export async function GET(request: NextRequest, { params }: { params: { branchId
       ...msg,
       metadata: {
         ...(typeof msg.metadata === 'object' && msg.metadata !== null ? msg.metadata : {}),
-        isTyping: msg.isTyping,
+        // If message has content, it's not typing anymore
+        isTyping: msg.content ? false : msg.isTyping,
       },
     }))
 

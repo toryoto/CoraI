@@ -62,6 +62,49 @@ interface BranchManagerActions {
 
 type UseBranchManagerReturn = BranchManagerState & BranchManagerActions
 
+// 型変換用のユーティリティ関数
+const transformMessageUpdates = (
+  updates: Partial<BranchMessage> & { isTyping?: boolean; isStreaming?: boolean }
+): Partial<BranchMessage> => {
+  const { isTyping, isStreaming, ...restUpdates } = updates
+  
+  if (isTyping === undefined && isStreaming === undefined) {
+    return restUpdates
+  }
+
+  return {
+    ...restUpdates,
+    metadata: {
+      ...(updates.metadata || {}),
+      ...(isTyping !== undefined && { isTyping }),
+      ...(isStreaming !== undefined && { isStreaming }),
+    },
+  }
+}
+
+// データ変換用のユーティリティ関数
+const formatBranchData = (branch: any): Branch => ({
+  id: branch.id,
+  chatId: branch.chatId,
+  parentBranchId: branch.parentBranchId,
+  name: branch.name,
+  color: branch.color || '#3b82f6',
+  isActive: false,
+  createdAt: new Date(branch.createdAt),
+  updatedAt: new Date(branch.updatedAt),
+  metadata: branch.metadata || {},
+})
+
+const formatMessageData = (msg: any): BranchMessage => ({
+  id: msg.id,
+  branchId: msg.branchId,
+  parentMessageId: msg.parentMessageId,
+  content: msg.content,
+  role: msg.role,
+  timestamp: new Date(msg.createdAt),
+  metadata: msg.metadata || {},
+})
+
 export const useBranchManager = ({
   chatId,
   initialBranches = [],
@@ -162,9 +205,8 @@ export const useBranchManager = ({
           // Throttle database updates during streaming (every 500ms)
           if (!window.streamingUpdateTimeout) {
             window.streamingUpdateTimeout = setTimeout(() => {
-              fetch(`/api/messages/${aiMessageId}`, {
+              apiRequest(`/api/messages/${aiMessageId}`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   content: accumulatedContent,
                   isTyping: true,
@@ -188,9 +230,8 @@ export const useBranchManager = ({
           if (finalContent) {
             try {
               // Single final update to database
-              await fetch(`/api/messages/${aiMessageId}`, {
+              await apiRequest(`/api/messages/${aiMessageId}`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   content: finalContent,
                   isTyping: false,
@@ -223,9 +264,8 @@ export const useBranchManager = ({
           }
 
           try {
-            await fetch(`/api/messages/${aiMessageId}`, {
+            await apiRequest(`/api/messages/${aiMessageId}`, {
               method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 content: errorContent,
                 isTyping: false,
@@ -505,37 +545,19 @@ export const useBranchManager = ({
   // ブランチデータ取得機能を追加
   const fetchBranches = useCallback(async () => {
     try {
-      const response = await fetch(`/api/chats/${chatId}/branches`)
-      if (response.ok) {
-        const branchesData = await response.json()
-        // ブランチデータをフォーマット
-        const formattedBranches: Branch[] = branchesData.map((branch: any) => ({
-          id: branch.id,
-          chatId: branch.chatId,
-          parentBranchId: branch.parentBranchId,
-          name: branch.name,
-          color: branch.color || '#3b82f6',
-          isActive: false,
-          createdAt: new Date(branch.createdAt),
-          updatedAt: new Date(branch.updatedAt),
-          metadata: branch.metadata || {},
-        }))
-        // メッセージデータをフォーマット
-        const messagesData: Record<string, BranchMessage[]> = {}
-        branchesData.forEach((branch: any) => {
-          messagesData[branch.id] = branch.messages.map((msg: any) => ({
-            id: msg.id,
-            branchId: msg.branchId,
-            parentMessageId: msg.parentMessageId,
-            content: msg.content,
-            role: msg.role,
-            timestamp: new Date(msg.createdAt),
-            metadata: msg.metadata || {},
-          }))
-        })
-        setBranches(formattedBranches)
-        setMessages(messagesData)
-      }
+      const branchesData = await apiRequest(`/api/chats/${chatId}/branches`)
+      
+      // ブランチデータをフォーマット
+      const formattedBranches: Branch[] = branchesData.map(formatBranchData)
+      
+      // メッセージデータをフォーマット
+      const messagesData: Record<string, BranchMessage[]> = {}
+      branchesData.forEach((branch: any) => {
+        messagesData[branch.id] = branch.messages.map(formatMessageData)
+      })
+      
+      setBranches(formattedBranches)
+      setMessages(messagesData)
     } catch (error) {
       console.error('Failed to fetch branches:', error)
     }
@@ -544,17 +566,8 @@ export const useBranchManager = ({
   // メッセージ取得機能を追加
   const fetchBranchMessages = useCallback(async (branchId: string) => {
     try {
-      const response = await fetch(`/api/branches/${branchId}/messages`)
-      const data = await response.json()
-      const formattedMessages = data.map((msg: any) => ({
-        id: msg.id,
-        branchId: msg.branchId,
-        parentMessageId: msg.parentMessageId,
-        content: msg.content,
-        role: msg.role,
-        timestamp: new Date(msg.createdAt),
-        metadata: msg.metadata || {},
-      }))
+      const data = await apiRequest(`/api/branches/${branchId}/messages`)
+      const formattedMessages = data.map(formatMessageData)
 
       setMessages(prev => ({
         ...prev,
@@ -569,9 +582,8 @@ export const useBranchManager = ({
   const addMessageToBranchWithDB = useCallback(
     async (branchId: string, message: Omit<BranchMessage, 'id' | 'timestamp'>) => {
       try {
-        const response = await fetch(`/api/branches/${branchId}/messages`, {
+        const data = await apiRequest(`/api/branches/${branchId}/messages`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             content: message.content,
             role: message.role,
@@ -579,7 +591,6 @@ export const useBranchManager = ({
             isTyping: message.metadata?.isTyping || false,
           }),
         })
-        const data = await response.json()
 
         const newMessage: BranchMessage = {
           ...message,
@@ -605,23 +616,10 @@ export const useBranchManager = ({
   const updateBranchMessage = useCallback(
     async (messageId: string, updates: Partial<BranchMessage> & { isTyping?: boolean; isStreaming?: boolean }) => {
       try {
-        // Transform isTyping/isStreaming into metadata
-        const { isTyping, isStreaming, ...restUpdates } = updates
-        const transformedUpdates: Partial<BranchMessage> = {
-          ...restUpdates,
-        }
-        
-        if (isTyping !== undefined || isStreaming !== undefined) {
-          transformedUpdates.metadata = {
-            ...(updates.metadata || {}),
-            ...(isTyping !== undefined && { isTyping }),
-            ...(isStreaming !== undefined && { isStreaming }),
-          }
-        }
+        const transformedUpdates = transformMessageUpdates(updates)
 
-        await fetch(`/api/messages/${messageId}`, {
+        await apiRequest(`/api/messages/${messageId}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(transformedUpdates),
         })
 
@@ -645,7 +643,7 @@ export const useBranchManager = ({
   // メッセージ削除機能を改善（DBにも保存）
   const removeBranchMessage = useCallback(async (messageId: string) => {
     try {
-      await fetch(`/api/messages/${messageId}`, { method: 'DELETE' })
+      await apiRequest(`/api/messages/${messageId}`, { method: 'DELETE' })
 
       setMessages(prev => ({
         ...Object.fromEntries(

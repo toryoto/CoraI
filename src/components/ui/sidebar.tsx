@@ -114,7 +114,7 @@ export function Sidebar({
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Image
-              src="/corai-icon.png"
+              src="/favicon/corai-icon.png"
               alt="CoraI"
               width={24}
               height={24}

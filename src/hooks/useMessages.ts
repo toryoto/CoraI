@@ -14,7 +14,8 @@ export function useMessages(
     try {
       const response = await fetch(`/api/chats/${chatId}`)
       const data = await response.json()
-      const mainBranch = data.branches[0]
+      // メインブランチ（parentBranchIdがnull）を取得
+      const mainBranch = data.branches.find((branch: any) => branch.parentBranchId === null)
       if (mainBranch) {
         setMainBranchId(mainBranch.id)
         const formattedMessages = mainBranch.messages.map((msg: any) => ({
