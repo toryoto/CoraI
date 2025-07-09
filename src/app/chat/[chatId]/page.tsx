@@ -5,14 +5,12 @@ export const dynamic = 'force-dynamic'
 import React from 'react'
 import { useEffect, useState } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
-import { Sidebar } from '@/components/ui/sidebar'
 import { ChatInterface } from '@/components/chat/chat-interface'
 import { BranchCreationModal } from '@/components/branch/branch-creation-modal'
 import { useChatList } from '@/hooks/useChatList'
 import { useMessages } from '@/hooks/useMessages'
 import { useAIChatForExistingChat } from '@/hooks/useAIChat'
 import { useBranchManager } from '@/hooks/useBranchManager'
-import { useSidebar } from '@/hooks/useSidebar'
 import { Branch } from '@/types/branch'
 
 export default function ChatIdPage() {
@@ -25,26 +23,10 @@ export default function ChatIdPage() {
   const [firstMessageProcessed, setFirstMessageProcessed] = useState(false)
   const mainBranchIdFromUrl = searchParams.get('mainBranchId')
 
-  const {
-    chats,
-    activeChat,
-    selectChat,
-    deleteChat,
-    renameChat,
-    updateChatPreview,
-    fetchChats,
-  } = useChatList()
+  const { activeChat, selectChat, updateChatPreview, fetchChats } = useChatList()
 
-  const {
-    messages,
-    fetchMessages,
-    addMessage,
-    updateMessage,
-    removeMessage,
-    mainBranchId,
-  } = useMessages(chatId, updateChatPreview, mainBranchIdFromUrl || undefined)
-
-  const { sidebarCollapsed, setSidebarCollapsed } = useSidebar()
+  const { messages, fetchMessages, addMessage, updateMessage, removeMessage, mainBranchId } =
+    useMessages(chatId, updateChatPreview, mainBranchIdFromUrl || undefined)
 
   // useBranchManagerは初期値は空でOK。データ取得後にsetBranches/setMessagesで反映
   const branchManager = useBranchManager({
@@ -111,7 +93,7 @@ export default function ChatIdPage() {
           await fetchMessages()
         }
         if (mainBranchId) {
-          setFirstMessageProcessed(true)          
+          setFirstMessageProcessed(true)
           await sendMessage(firstMessage)
           setTimeout(() => {
             router.replace(`/chat/${chatId}`)
@@ -122,12 +104,16 @@ export default function ChatIdPage() {
       }
     }
     trySendFirstMessage()
-  }, [firstMessage, activeChat, chatId, firstMessageProcessed, sendMessage, router, mainBranchId, fetchMessages])
-
-  // 初回ロード時にチャット一覧を取得
-  useEffect(() => {
-    fetchChats()
-  }, [fetchChats])
+  }, [
+    firstMessage,
+    activeChat,
+    chatId,
+    firstMessageProcessed,
+    sendMessage,
+    router,
+    mainBranchId,
+    fetchMessages,
+  ])
 
   // chatIdが変わったときにメッセージを取得
   useEffect(() => {
@@ -137,34 +123,16 @@ export default function ChatIdPage() {
   const currentMessages = messages
 
   return (
-    <div className="flex h-screen bg-white dark:bg-gray-950">
-      <Sidebar
-        chats={chats}
-        activeChat={activeChat}
-        onNewChat={() => {
-          router.push('/chat/new')
-        }}
-        onSelectChat={newChatId => {
-          selectChat(newChatId)
-          router.push(`/chat/${newChatId}`)
-        }}
-        onDeleteChat={deleteChat}
-        onRenameChat={renameChat}
-        isCollapsed={sidebarCollapsed}
-        onToggleCollapsed={() => setSidebarCollapsed(!sidebarCollapsed)}
+    <>
+      <ChatInterface
+        messages={currentMessages}
+        onSendMessage={handleSendMessage}
+        isGenerating={isGenerating}
+        onStopGeneration={stopGeneration}
+        onBranch={handleBranch}
+        currentBranch={branchManager.currentBranch}
+        onViewBranches={handleViewBranches}
       />
-
-      <div className="flex-1 flex flex-col">
-        <ChatInterface
-          messages={currentMessages}
-          onSendMessage={handleSendMessage}
-          isGenerating={isGenerating}
-          onStopGeneration={stopGeneration}
-          onBranch={handleBranch}
-          currentBranch={branchManager.currentBranch}
-          onViewBranches={handleViewBranches}
-        />
-      </div>
 
       {/* Branch Creation Modal */}
       <BranchCreationModal
@@ -183,6 +151,6 @@ export default function ChatIdPage() {
         isCreating={branchManager.isCreatingBranch}
         parentMessage={branchManager.branchCreationModal.parentMessage}
       />
-    </div>
+    </>
   )
 }

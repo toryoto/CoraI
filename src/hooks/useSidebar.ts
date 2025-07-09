@@ -12,4 +12,4 @@ export function useSidebar() {
     setSidebarCollapsed,
     toggleSidebar,
   }
-} 
+}
