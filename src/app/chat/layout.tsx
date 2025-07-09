@@ -3,14 +3,22 @@
 import React from 'react'
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Sidebar } from '@/components/ui/sidebar'
+import { Sidebar, SidebarOverlay } from '@/components/ui/sidebar'
 import { useChatList } from '@/hooks/useChatList'
 import { useSidebar } from '@/hooks/useSidebar'
 
 export default function ChatLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const { chats, activeChat, selectChat, deleteChat, renameChat, fetchChats } = useChatList()
-  const { sidebarCollapsed, setSidebarCollapsed } = useSidebar()
+  const { 
+    sidebarCollapsed, 
+    sidebarWidth, 
+    isResizing,
+    toggleSidebar, 
+    startResize, 
+    stopResize, 
+    updateWidth 
+  } = useSidebar()
 
   useEffect(() => {
     fetchChats()
@@ -31,10 +39,22 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
         onDeleteChat={deleteChat}
         onRenameChat={renameChat}
         isCollapsed={sidebarCollapsed}
-        onToggleCollapsed={() => setSidebarCollapsed(!sidebarCollapsed)}
+        onToggleCollapsed={toggleSidebar}
+        width={sidebarWidth}
+        onWidthChange={updateWidth}
+        isResizing={isResizing}
+        onResizeStart={startResize}
+        onResizeStop={stopResize}
       />
 
-      <div className="flex-1 flex flex-col">{children}</div>
+      <div className="flex-1 flex flex-col relative">
+        {/* サイドバーが閉じている時にオーバーレイボタンを表示 */}
+        <SidebarOverlay 
+          isCollapsed={sidebarCollapsed} 
+          onToggleCollapsed={toggleSidebar} 
+        />
+        {children}
+      </div>
     </div>
   )
 }

@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
-import { PlusIcon, MessageSquareIcon, PenIcon, TrashIcon, SearchIcon } from 'lucide-react'
+import { PlusIcon, MessageSquareIcon, PenIcon, TrashIcon, SearchIcon, MenuIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CustomUserButton } from '@/components/user-button'
 import Image from 'next/image'
@@ -25,6 +25,11 @@ export interface SidebarProps {
   onRenameChat: (chatId: string, newTitle: string) => void
   isCollapsed?: boolean
   onToggleCollapsed?: () => void
+  width?: number
+  onWidthChange?: (width: number) => void
+  isResizing?: boolean
+  onResizeStart?: () => void
+  onResizeStop?: () => void
 }
 
 export function Sidebar({
@@ -36,10 +41,16 @@ export function Sidebar({
   onRenameChat,
   isCollapsed = false,
   onToggleCollapsed,
+  width = 320,
+  onWidthChange,
+  isResizing = false,
+  onResizeStart,
+  onResizeStop,
 }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [editingChat, setEditingChat] = useState<string | null>(null)
   const [editTitle, setEditTitle] = useState('')
+  const resizeRef = useRef<HTMLDivElement>(null)
 
   const filteredChats = chats.filter(
     chat =>
@@ -59,6 +70,28 @@ export function Sidebar({
     setEditingChat(chat.id)
     setEditTitle(chat.title)
   }
+
+  // リサイズ処理
+  useEffect(() => {
+    if (!isResizing || !onWidthChange) return
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const newWidth = e.clientX
+      onWidthChange(newWidth)
+    }
+
+    const handleMouseUp = () => {
+      onResizeStop?.()
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [isResizing, onWidthChange, onResizeStop])
 
   if (isCollapsed) {
     return (
@@ -108,7 +141,10 @@ export function Sidebar({
   }
 
   return (
-    <div className="flex flex-col h-full w-80 bg-gradient-to-b from-blue-50 via-cyan-50 to-teal-50 dark:from-blue-950 dark:via-cyan-950 dark:to-teal-950 border-r border-blue-100 dark:border-blue-800">
+    <div
+      className="flex flex-col h-full bg-gradient-to-b from-blue-50 via-cyan-50 to-teal-50 dark:from-blue-950 dark:via-cyan-950 dark:to-teal-950 border-r border-blue-100 dark:border-blue-800 relative"
+      style={{ width: `${width}px` }}
+    >
       {/* Header */}
       <div className="p-4 border-b border-blue-100 dark:border-blue-800 bg-white/70 dark:bg-gray-900/70 backdrop-blur-sm">
         <div className="flex items-center justify-between mb-4">
@@ -250,6 +286,40 @@ export function Sidebar({
       <div className="p-4 border-t border-blue-100 dark:border-blue-800 bg-white/70 dark:bg-gray-900/70 backdrop-blur-sm">
         <CustomUserButton />
       </div>
+
+      {/* リサイズハンドル */}
+      <div
+        ref={resizeRef}
+        className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-blue-400 dark:hover:bg-blue-600 transition-colors"
+        onMouseDown={onResizeStart}
+        style={{
+          backgroundColor: isResizing ? 'rgb(96 165 250)' : 'transparent',
+        }}
+      />
+    </div>
+  )
+}
+
+// サイドバーを開くためのオーバーレイコンポーネント
+export function SidebarOverlay({
+  isCollapsed,
+  onToggleCollapsed,
+}: {
+  isCollapsed: boolean
+  onToggleCollapsed?: () => void
+}) {
+  if (!isCollapsed || !onToggleCollapsed) return null
+
+  return (
+    <div className="fixed top-0 left-0 z-40 w-16 h-full">
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={onToggleCollapsed}
+        className="fixed top-4 left-4 w-8 h-8 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border border-blue-200 dark:border-blue-700 shadow-lg"
+      >
+        <MenuIcon className="h-4 w-4" />
+      </Button>
     </div>
   )
 }
