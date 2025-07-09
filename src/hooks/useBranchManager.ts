@@ -39,11 +39,17 @@ interface BranchManagerActions {
   switchBranch: (branchId: string) => void
   deleteBranch: (branchId: string) => Promise<void>
   updateBranch: (branchId: string, updates: Partial<Branch>) => Promise<void>
-  openBranchCreationModal: (parentMessageId: string, parentMessage?: { id: string; content: string; role: string }) => void
+  openBranchCreationModal: (
+    parentMessageId: string,
+    parentMessage?: { id: string; content: string; role: string }
+  ) => void
   closeBranchCreationModal: () => void
   updateBranchCreationConfig: (config: Partial<BranchCreationConfig>) => void
   addMessageToBranch: (branchId: string, message: Omit<BranchMessage, 'id' | 'timestamp'>) => void
-  addMessageToBranchWithDB: (branchId: string, message: Omit<BranchMessage, 'id' | 'timestamp'>) => Promise<string | null>
+  addMessageToBranchWithDB: (
+    branchId: string,
+    message: Omit<BranchMessage, 'id' | 'timestamp'>
+  ) => Promise<string | null>
   updateBranchMessage: (messageId: string, updates: Partial<BranchMessage>) => Promise<void>
   removeBranchMessage: (messageId: string) => Promise<void>
   fetchBranchMessages: (branchId: string) => Promise<void>
@@ -246,7 +252,11 @@ export const useBranchManager = ({
   }, [])
 
   // 分岐元ブランチを取得する共通関数
-  function getBaseBranch(branches: Branch[], initialBranches: Branch[], currentBranchId: string | null): Branch | undefined {
+  function getBaseBranch(
+    branches: Branch[],
+    initialBranches: Branch[],
+    currentBranchId: string | null
+  ): Branch | undefined {
     const branchList = branches.length > 0 ? branches : initialBranches
     let baseBranchId = currentBranchId
     if (!baseBranchId && branchList.length > 0) {
@@ -296,14 +306,17 @@ export const useBranchManager = ({
 
           if (parentMessage) {
             try {
-              const savedParentMessage = await apiRequest(`/api/branches/${newBranch.id}/messages`, {
-                method: 'POST',
-                body: JSON.stringify({
-                  content: parentMessage.content,
-                  role: parentMessage.role,
-                  isTyping: false,
-                }),
-              })
+              const savedParentMessage = await apiRequest(
+                `/api/branches/${newBranch.id}/messages`,
+                {
+                  method: 'POST',
+                  body: JSON.stringify({
+                    content: parentMessage.content,
+                    role: parentMessage.role,
+                    isTyping: false,
+                  }),
+                }
+              )
 
               const copiedMessage = createBranchMessage(
                 {
@@ -321,14 +334,17 @@ export const useBranchManager = ({
               }))
 
               if (branchConfig.question.trim()) {
-                const savedUserMessage = await apiRequest(`/api/branches/${newBranch.id}/messages`, {
-                  method: 'POST',
-                  body: JSON.stringify({
-                    content: branchConfig.question,
-                    role: 'user',
-                    isTyping: false,
-                  }),
-                })
+                const savedUserMessage = await apiRequest(
+                  `/api/branches/${newBranch.id}/messages`,
+                  {
+                    method: 'POST',
+                    body: JSON.stringify({
+                      content: branchConfig.question,
+                      role: 'user',
+                      isTyping: false,
+                    }),
+                  }
+                )
 
                 const userMessage = createBranchMessage(
                   {
@@ -407,7 +423,17 @@ export const useBranchManager = ({
         setIsCreatingBranch(false)
       }
     },
-    [chatId, currentBranchId, branches, generateAIResponse, router, onBranchCreated, closeBranchCreationModal, branchCreationModal.parentMessage, initialBranches]
+    [
+      chatId,
+      currentBranchId,
+      branches,
+      generateAIResponse,
+      router,
+      onBranchCreated,
+      closeBranchCreationModal,
+      branchCreationModal.parentMessage,
+      initialBranches,
+    ]
   )
 
   const switchBranch = useCallback((branchId: string) => {
@@ -529,7 +555,7 @@ export const useBranchManager = ({
         timestamp: new Date(msg.createdAt),
         metadata: msg.metadata || {},
       }))
-      
+
       setMessages(prev => ({
         ...prev,
         [branchId]: formattedMessages,
@@ -540,66 +566,72 @@ export const useBranchManager = ({
   }, [])
 
   // メッセージ追加機能を改善（DBにも保存）
-  const addMessageToBranchWithDB = useCallback(async (branchId: string, message: Omit<BranchMessage, 'id' | 'timestamp'>) => {
-    try {
-      const response = await fetch(`/api/branches/${branchId}/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content: message.content,
-          role: message.role,
-          modelUsed: message.role === 'assistant' ? 'gpt-4o-mini' : undefined,
-          isTyping: message.metadata?.isTyping || false,
-        }),
-      })
-      const data = await response.json()
-      
-      const newMessage: BranchMessage = {
-        ...message,
-        id: data.id,
-        timestamp: new Date(data.createdAt),
-      }
+  const addMessageToBranchWithDB = useCallback(
+    async (branchId: string, message: Omit<BranchMessage, 'id' | 'timestamp'>) => {
+      try {
+        const response = await fetch(`/api/branches/${branchId}/messages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: message.content,
+            role: message.role,
+            modelUsed: message.role === 'assistant' ? 'gpt-4o-mini' : undefined,
+            isTyping: message.metadata?.isTyping || false,
+          }),
+        })
+        const data = await response.json()
 
-      setMessages(prev => ({
-        ...prev,
-        [branchId]: [...(prev[branchId] || []), newMessage],
-      }))
-      
-      return data.id
-    } catch (error) {
-      console.error('Failed to add message to branch:', error)
-      return null
-    }
-  }, [])
+        const newMessage: BranchMessage = {
+          ...message,
+          id: data.id,
+          timestamp: new Date(data.createdAt),
+        }
+
+        setMessages(prev => ({
+          ...prev,
+          [branchId]: [...(prev[branchId] || []), newMessage],
+        }))
+
+        return data.id
+      } catch (error) {
+        console.error('Failed to add message to branch:', error)
+        return null
+      }
+    },
+    []
+  )
 
   // メッセージ更新機能を改善（DBにも保存）
-  const updateBranchMessage = useCallback(async (messageId: string, updates: Partial<BranchMessage>) => {
-    try {
-      await fetch(`/api/messages/${messageId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
-      })
-      
-      setMessages(prev => {
-        const newMessages = { ...prev }
-        Object.keys(newMessages).forEach(branchId => {
-          newMessages[branchId] = newMessages[branchId].map(msg =>
-            msg.id === messageId ? { ...msg, ...updates } : msg
-          )
+  const updateBranchMessage = useCallback(
+    async (messageId: string, updates: Partial<BranchMessage>) => {
+      try {
+        await fetch(`/api/messages/${messageId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates),
         })
-        return newMessages
-      })
-    } catch (error) {
-      console.error('Failed to update branch message:', error)
-    }
-  }, [])
+
+        setMessages(prev => {
+          const newMessages = { ...prev }
+          Object.keys(newMessages).forEach(branchId => {
+            newMessages[branchId] = newMessages[branchId].map(msg =>
+              msg.id === messageId ? { ...msg, ...updates } : msg
+            )
+          })
+          return newMessages
+        })
+      } catch (error) {
+        console.error('Failed to update branch message:', error)
+      }
+    },
+    []
+  )
 
   // メッセージ削除機能を改善（DBにも保存）
   const removeBranchMessage = useCallback(async (messageId: string) => {
     try {
       await fetch(`/api/messages/${messageId}`, { method: 'DELETE' })
-      
+
       setMessages(prev => {
         const newMessages = { ...prev }
         Object.keys(newMessages).forEach(branchId => {

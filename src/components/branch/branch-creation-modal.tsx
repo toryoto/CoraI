@@ -115,7 +115,7 @@ export function BranchCreationModal({
     }
   }, [config, onCreateBranches])
 
-  const canProceed = parentMessage 
+  const canProceed = parentMessage
     ? config.branches.every(branch => branch.name.trim())
     : config.branches.every(branch => branch.name.trim() && branch.question.trim())
 
@@ -221,9 +221,11 @@ export function BranchCreationModal({
                       id={`branch-question-${index}`}
                       value={branch.question}
                       onChange={e => handleBranchChange(index, 'question', e.target.value)}
-                      placeholder={parentMessage 
-                        ? "Optionally add a follow-up question for this branch..."
-                        : "Enter your question for this branch..."}
+                      placeholder={
+                        parentMessage
+                          ? 'Optionally add a follow-up question for this branch...'
+                          : 'Enter your question for this branch...'
+                      }
                       rows={3}
                     />
                   </div>
