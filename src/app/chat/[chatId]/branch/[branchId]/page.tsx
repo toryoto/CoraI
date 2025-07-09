@@ -1,14 +1,13 @@
 'use client'
 
 import React from 'react'
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { ChatInterface } from '@/components/chat/chat-interface'
 import { BranchCreationModal } from '@/components/branch/branch-creation-modal'
 import { useChatList } from '@/hooks/useChatList'
 import { useAIChatForExistingChat } from '@/hooks/useAIChat'
 import { useBranchManager } from '@/hooks/useBranchManager'
-import { Branch, BranchMessage } from '@/types/branch'
 
 export default function BranchChatPage() {
   const params = useParams()
@@ -36,7 +35,7 @@ export default function BranchChatPage() {
     }))
   }, [branchManager.messages, branchId])
 
-  const { activeChat, selectChat, fetchChats } = useChatList()
+  const { activeChat, selectChat } = useChatList()
 
   // チャット選択
   useEffect(() => {

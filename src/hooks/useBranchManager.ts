@@ -603,23 +603,38 @@ export const useBranchManager = ({
 
   // メッセージ更新機能を改善（DBにも保存）
   const updateBranchMessage = useCallback(
-    async (messageId: string, updates: Partial<BranchMessage>) => {
+    async (messageId: string, updates: Partial<BranchMessage> & { isTyping?: boolean; isStreaming?: boolean }) => {
       try {
+        // Transform isTyping/isStreaming into metadata
+        const { isTyping, isStreaming, ...restUpdates } = updates
+        const transformedUpdates: Partial<BranchMessage> = {
+          ...restUpdates,
+        }
+        
+        if (isTyping !== undefined || isStreaming !== undefined) {
+          transformedUpdates.metadata = {
+            ...(updates.metadata || {}),
+            ...(isTyping !== undefined && { isTyping }),
+            ...(isStreaming !== undefined && { isStreaming }),
+          }
+        }
+
         await fetch(`/api/messages/${messageId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updates),
+          body: JSON.stringify(transformedUpdates),
         })
 
-        setMessages(prev => {
-          const newMessages = { ...prev }
-          Object.keys(newMessages).forEach(branchId => {
-            newMessages[branchId] = newMessages[branchId].map(msg =>
-              msg.id === messageId ? { ...msg, ...updates } : msg
-            )
-          })
-          return newMessages
-        })
+        setMessages(prev => ({
+          ...Object.fromEntries(
+            Object.entries(prev).map(([branchId, messages]) => [
+              branchId,
+              messages.map(msg =>
+                msg.id === messageId ? { ...msg, ...transformedUpdates } : msg
+              )
+            ])
+          )
+        }))
       } catch (error) {
         console.error('Failed to update branch message:', error)
       }
@@ -632,13 +647,14 @@ export const useBranchManager = ({
     try {
       await fetch(`/api/messages/${messageId}`, { method: 'DELETE' })
 
-      setMessages(prev => {
-        const newMessages = { ...prev }
-        Object.keys(newMessages).forEach(branchId => {
-          newMessages[branchId] = newMessages[branchId].filter(msg => msg.id !== messageId)
-        })
-        return newMessages
-      })
+      setMessages(prev => ({
+        ...Object.fromEntries(
+          Object.entries(prev).map(([branchId, messages]) => [
+            branchId,
+            messages.filter(msg => msg.id !== messageId)
+          ])
+        )
+      }))
     } catch (error) {
       console.error('Failed to remove branch message:', error)
     }
