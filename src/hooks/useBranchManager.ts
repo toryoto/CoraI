@@ -102,7 +102,10 @@ const formatMessageData = (msg: any): BranchMessage => ({
   content: msg.content,
   role: msg.role,
   timestamp: new Date(msg.createdAt),
-  metadata: msg.metadata || {},
+  metadata: {
+    ...(msg.metadata || {}),
+    isTyping: msg.metadata?.isTyping ?? false,
+  },
 })
 
 export const useBranchManager = ({
@@ -154,7 +157,6 @@ export const useBranchManager = ({
 
   const generateAIResponse = useCallback(async (branchId: string, userQuestion: string) => {
     try {
-      // Create empty AI message in DB first
       const savedAiMessage = await apiRequest(`/api/branches/${branchId}/messages`, {
         method: 'POST',
         body: JSON.stringify({
@@ -176,7 +178,6 @@ export const useBranchManager = ({
         [branchId]: [...(prev[branchId] || []), aiMessage],
       }))
 
-      // Prepare messages for API call
       const apiMessages: ChatMessage[] = [
         {
           role: 'user',
@@ -191,7 +192,6 @@ export const useBranchManager = ({
         onStream: (streamContent: string) => {
           accumulatedContent += streamContent
 
-          // Update only local state during streaming (no DB updates)
           setMessages(prev => ({
             ...prev,
             [branchId]:
@@ -202,7 +202,6 @@ export const useBranchManager = ({
               ) || [],
           }))
 
-          // Throttle database updates during streaming (every 500ms)
           if (!window.streamingUpdateTimeout) {
             window.streamingUpdateTimeout = setTimeout(() => {
               apiRequest(`/api/messages/${aiMessageId}`, {
@@ -221,7 +220,6 @@ export const useBranchManager = ({
         onComplete: async (fullContent: string) => {
           const finalContent = fullContent || accumulatedContent
 
-          // Clear any pending streaming timeout
           if (window.streamingUpdateTimeout) {
             clearTimeout(window.streamingUpdateTimeout)
             window.streamingUpdateTimeout = null
@@ -229,7 +227,6 @@ export const useBranchManager = ({
 
           if (finalContent) {
             try {
-              // Single final update to database
               await apiRequest(`/api/messages/${aiMessageId}`, {
                 method: 'PATCH',
                 body: JSON.stringify({
@@ -238,7 +235,6 @@ export const useBranchManager = ({
                 }),
               })
 
-              // Final update to local state
               setMessages(prev => ({
                 ...prev,
                 [branchId]:
@@ -257,7 +253,6 @@ export const useBranchManager = ({
           console.error('AI response error for branch:', branchId, error)
           const errorContent = `エラーが発生しました: ${error}`
 
-          // Clear any pending streaming timeout
           if (window.streamingUpdateTimeout) {
             clearTimeout(window.streamingUpdateTimeout)
             window.streamingUpdateTimeout = null
@@ -283,15 +278,50 @@ export const useBranchManager = ({
             }))
           } catch (updateError) {
             console.error('Failed to update error message:', updateError)
+            setMessages(prev => ({
+              ...prev,
+              [branchId]:
+                prev[branchId]?.map(msg =>
+                  msg.id === aiMessageId
+                    ? { ...msg, content: errorContent, metadata: { isTyping: false } }
+                    : msg
+                ) || [],
+            }))
           }
         },
       })
     } catch (error) {
       console.error('Failed to generate AI response for branch:', branchId, error)
+      try {
+        const existingMessages = messages[branchId] || []
+        const typingAI = existingMessages.find(msg => 
+          msg.role === 'assistant' && msg.metadata?.isTyping
+        )
+        
+        if (typingAI) {
+          await apiRequest(`/api/messages/${typingAI.id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+              isTyping: false,
+            }),
+          })
+          
+          setMessages(prev => ({
+            ...prev,
+            [branchId]:
+              prev[branchId]?.map(msg =>
+                msg.id === typingAI.id
+                  ? { ...msg, metadata: { ...msg.metadata, isTyping: false } }
+                  : msg
+              ) || [],
+          }))
+        }
+      } catch (cleanupError) {
+        console.error('Failed to cleanup typing state:', cleanupError)
+      }
     }
   }, [])
 
-  // 分岐元ブランチを取得する共通関数
   function getBaseBranch(
     branches: Branch[],
     initialBranches: Branch[],
@@ -313,13 +343,11 @@ export const useBranchManager = ({
         const newBranches: Branch[] = []
         const parentMessage = branchCreationModal.parentMessage
 
-        // 共通関数で分岐元ブランチ取得
         const currentBranch = getBaseBranch(branches, initialBranches, currentBranchId)
         if (!currentBranch) throw new Error('分岐元ブランチが見つかりません')
 
         for (let i = 0; i < config.branches.length; i++) {
           const branchConfig = config.branches[i]
-          // mainブランチも含め、常に分岐元のIDをparentBranchIdに指定
           const newBranchParentId = currentBranch.id
 
           const createdBranch = await apiRequest(`/api/chats/${chatId}/branches`, {
@@ -542,15 +570,12 @@ export const useBranchManager = ({
     []
   )
 
-  // ブランチデータ取得機能を追加
   const fetchBranches = useCallback(async () => {
     try {
       const branchesData = await apiRequest(`/api/chats/${chatId}/branches`)
       
-      // ブランチデータをフォーマット
       const formattedBranches: Branch[] = branchesData.map(formatBranchData)
       
-      // メッセージデータをフォーマット
       const messagesData: Record<string, BranchMessage[]> = {}
       branchesData.forEach((branch: any) => {
         messagesData[branch.id] = branch.messages.map(formatMessageData)
@@ -563,22 +588,37 @@ export const useBranchManager = ({
     }
   }, [chatId])
 
-  // メッセージ取得機能を追加
   const fetchBranchMessages = useCallback(async (branchId: string) => {
     try {
       const data = await apiRequest(`/api/branches/${branchId}/messages`)
       const formattedMessages = data.map(formatMessageData)
 
-      setMessages(prev => ({
-        ...prev,
-        [branchId]: formattedMessages,
-      }))
+      setMessages(prev => {
+        const localMessages = prev[branchId] || []
+        const dbMessages = formattedMessages
+        
+        const mergedMessages = dbMessages.map((dbMsg: BranchMessage) => {
+          const localMsg = localMessages.find(local => local.id === dbMsg.id)
+          if (localMsg && localMsg.metadata?.isTyping && !dbMsg.metadata?.isTyping) {
+            return dbMsg
+          }
+          return localMsg || dbMsg
+        })
+
+        const localOnlyMessages = localMessages.filter(local => 
+          local.metadata?.isTyping && !dbMessages.find((db: BranchMessage) => db.id === local.id)
+        )
+
+        return {
+          ...prev,
+          [branchId]: [...mergedMessages, ...localOnlyMessages],
+        }
+      })
     } catch (error) {
       console.error('Failed to fetch branch messages:', error)
     }
   }, [])
 
-  // メッセージ追加機能を改善（DBにも保存）
   const addMessageToBranchWithDB = useCallback(
     async (branchId: string, message: Omit<BranchMessage, 'id' | 'timestamp'>) => {
       try {
@@ -612,7 +652,6 @@ export const useBranchManager = ({
     []
   )
 
-  // メッセージ更新機能を改善（DBにも保存）
   const updateBranchMessage = useCallback(
     async (messageId: string, updates: Partial<BranchMessage> & { isTyping?: boolean; isStreaming?: boolean }) => {
       try {
@@ -640,7 +679,6 @@ export const useBranchManager = ({
     []
   )
 
-  // メッセージ削除機能を改善（DBにも保存）
   const removeBranchMessage = useCallback(async (messageId: string) => {
     try {
       await apiRequest(`/api/messages/${messageId}`, { method: 'DELETE' })
@@ -658,7 +696,6 @@ export const useBranchManager = ({
     }
   }, [])
 
-  // 現在のブランチ情報を取得
   const currentBranch = useMemo(() => {
     if (currentBranchId) {
       const branch = branches.find(b => b.id === currentBranchId)
@@ -674,40 +711,27 @@ export const useBranchManager = ({
   }, [currentBranchId, branches])
 
   return {
-    // State
     branches,
     currentBranchId,
     messages,
     isCreatingBranch,
     branchCreationModal,
-
-    // Branch management
     createBranches,
     switchBranch,
     deleteBranch,
     updateBranch,
     setBranches,
-
-    // Modal management
     openBranchCreationModal,
     closeBranchCreationModal,
     updateBranchCreationConfig,
-
-    // Messages
     addMessageToBranch,
     addMessageToBranchWithDB,
     updateBranchMessage,
     removeBranchMessage,
     fetchBranchMessages,
     setMessages,
-
-    // Data fetching
     fetchBranches,
-
-    // Computed values
     currentBranch,
-
-    // Utilities
     generateBranchConfig,
   }
 }
