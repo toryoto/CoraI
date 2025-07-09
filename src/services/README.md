@@ -35,16 +35,16 @@ import { useChatList } from '@/hooks/useChatList'
 import { useChat } from '@/hooks/useChat'
 
 // Use chat list hook
-const { 
-  chats, 
-  activeChat, 
+const {
+  chats,
+  activeChat,
   loading,
   fetchChats,
   createNewChat,
   deleteChat,
   renameChat,
   selectChat,
-  updateChatPreview 
+  updateChatPreview,
 } = useChatList()
 
 // Use single chat hook

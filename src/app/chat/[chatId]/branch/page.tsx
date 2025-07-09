@@ -21,8 +21,6 @@ export default function BranchPage() {
     initialMessages: {},
   })
 
-
-
   // Fetch branches from API
   useEffect(() => {
     if (chatId) {

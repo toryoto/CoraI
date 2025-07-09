@@ -115,8 +115,6 @@ export default function ChatIdPage() {
     fetchMessages,
   ])
 
-
-
   // chatIdが変わったときにメッセージを取得
   useEffect(() => {
     fetchMessages()

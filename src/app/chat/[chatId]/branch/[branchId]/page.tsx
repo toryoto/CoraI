@@ -59,8 +59,6 @@ export default function BranchChatPage() {
     }
   }, [branchId, branchManager.fetchBranchMessages])
 
-
-
   // AIチャット機能をbranchManagerと統合
   const { isGenerating, sendMessage, stopGeneration } = useAIChatForExistingChat(branchId, {
     addMessage: async message => {
