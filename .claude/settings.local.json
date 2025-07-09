@@ -6,7 +6,11 @@
       "Bash(npm run build:*)",
       "Bash(rm:*)",
       "Bash(npm install:*)",
-      "Bash(npx prisma:*)"
+      "Bash(npx prisma:*)",
+      "Bash(npx shadcn-ui:*)",
+      "Bash(npx shadcn@latest add dialog)",
+      "Bash(npx shadcn@latest add label)",
+      "Bash(npx:*)"
     ],
     "deny": []
   }

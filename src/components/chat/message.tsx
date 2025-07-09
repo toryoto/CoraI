@@ -17,6 +17,8 @@ export interface Message {
   role: 'user' | 'assistant'
   timestamp: Date
   isTyping?: boolean
+  isStreaming?: boolean
+  branchId?: string
 }
 
 export interface MessageProps {

@@ -60,7 +60,15 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    return NextResponse.json(chat)
+    // mainBranchIdを取得
+    const mainBranch = chat.branches[0]
+    return NextResponse.json({
+      id: chat.id,
+      title: chat.title,
+      updatedAt: chat.updatedAt,
+      branches: chat.branches,
+      mainBranchId: mainBranch ? mainBranch.id : null,
+    })
   } catch (error) {
     console.error('Failed to create chat:', error)
     return NextResponse.json({ error: 'Failed to create chat' }, { status: 500 })
